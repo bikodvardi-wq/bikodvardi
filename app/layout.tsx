@@ -1,3 +1,4 @@
+import { GoogleAnalytics } from '@next/third-parties/google'  
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
@@ -11,7 +12,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "biKodVardı | Aradığın kod, tek tıkla.",
   description: "En güncel indirim kodları ve fırsatlar.",
-  manifest: "/manifest.json", // Mobil uygulama özelliği için
+  manifest: "/manifest.json", 
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -22,7 +23,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="tr">
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* Google Analytics Buraya Eklendi */}
+        <GoogleAnalytics gaId="G-0N4WX0JBNB" /> 
+      </body>
     </html>
   );
-}                   
+}
