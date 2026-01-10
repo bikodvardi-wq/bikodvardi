@@ -6,121 +6,146 @@ import Link from 'next/link';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({ kampanya: 0, marka: 0, sektor: 0, aktifKampanya: 0 });
-  const [sonKampanyalar, setSonKampanyalar] = useState<any[]>([]);
+  const [tumKampanyalar, setTumKampanyalar] = useState<any[]>([]);
+  const [filtreliKampanyalar, setFiltreliKampanyalar] = useState<any[]>([]);
+  const [aramaMetni, setAramaMetni] = useState('');
   const [yukleniyor, setYukleniyor] = useState(true);
 
   const veriGetir = async () => {
     setYukleniyor(true);
+    
+    // İstatistikler
     const { count: kSayisi } = await supabase.from('kampanya').select('*', { count: 'exact' });
     const { count: mSayisi } = await supabase.from('marka').select('*', { count: 'exact' });
     const { count: sSayisi } = await supabase.from('sektor').select('*', { count: 'exact' });
-    const bugun = new Date().toISOString();
-    const { count: aSayisi } = await supabase.from('kampanya').select('*', { count: 'exact' }).gt('bitis_date', bugun);
+    const { count: aSayisi } = await supabase.from('kampanya').select('*', { count: 'exact' }).gt('bitis_date', new Date().toISOString());
 
-    setStats({
-        kampanya: kSayisi || 0,
-        marka: mSayisi || 0,
-        sektor: sSayisi || 0,
-        aktifKampanya: aSayisi || 0
-    });
+    setStats({ kampanya: kSayisi || 0, marka: mSayisi || 0, sektor: sSayisi || 0, aktifKampanya: aSayisi || 0 });
 
-    const { data: sonData } = await supabase
+    // Tüm Kampanyalar (Sınırı kaldırdık ve markayı çektik)
+    const { data } = await supabase
       .from('kampanya')
       .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi)')
-      .order('id', { ascending: false })
-      .limit(10);
+      .order('id', { ascending: false });
       
-    setSonKampanyalar(sonData || []);
+    setTumKampanyalar(data || []);
+    setFiltreliKampanyalar(data || []);
     setYukleniyor(false);
   };
 
+  useEffect(() => { veriGetir(); }, []);
+
+  // CANLI FİLTRELEME (Marka veya Başlık yazınca anında bulur)
   useEffect(() => {
-    veriGetir();
-  }, []);
+    const sonuclar = tumKampanyalar.filter(k => 
+      k.baslik.toLowerCase().includes(aramaMetni.toLowerCase()) ||
+      k.yapan_marka_bilgisi?.marka_adi.toLowerCase().includes(aramaMetni.toLowerCase())
+    );
+    setFiltreliKampanyalar(sonuclar);
+  }, [aramaMetni, tumKampanyalar]);
 
   const kampanyaSil = async (id: number) => {
     if (confirm('Bu kampanyayı silmek istediğine emin misin?')) {
       const { error } = await supabase.from('kampanya').delete().eq('id', id);
-      if (error) alert("Hata: " + error.message);
-      else {
-        alert("Kampanya silindi.");
-        veriGetir();
-      }
+      if (!error) veriGetir();
     }
   };
 
   if(yukleniyor) return <div className="p-10 font-black text-blue-600 animate-pulse">Panel Yükleniyor...</div>;
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      {/* HEADER ALANI */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
+    <div className="p-6 md:p-10 max-w-7xl mx-auto font-['Plus_Jakarta_Sans']">
+      
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
           <div>
-            <h2 className="text-4xl font-black text-slate-900 tracking-tighter" style={{ fontFamily: 'Outfit' }}>Komuta Merkezi 🚀</h2>
-            <p className="text-slate-500 font-medium mt-2">İçerikleri ve bağlantıları buradan yönetebilirsin.</p>
+            <h2 className="text-4xl font-[900] text-slate-900 tracking-tighter" style={{ fontFamily: 'Outfit' }}>Komuta Merkezi 🚀</h2>
+            <p className="text-slate-500 font-medium">Toplam {stats.kampanya} kampanyayı yönetiyorsun.</p>
           </div>
-          
           <div className="flex gap-3">
-            {/* EKLENEN MARKA DÜZENLE BUTONU */}
-            <Link href="/admin/marka-duzenle" className="bg-white text-slate-900 border border-slate-200 px-6 py-4 rounded-full font-bold hover:bg-slate-50 transition-all shadow-sm no-underline flex items-center gap-2">
+             <Link href="/admin/marka-duzenle" className="bg-white text-slate-900 border border-slate-200 px-6 py-4 rounded-3xl font-bold hover:bg-slate-50 shadow-sm transition-all no-underline">
               🏷️ Markaları Yönet
             </Link>
-            
-            <Link href="/admin/kampanya-ekle" className="bg-blue-600 text-white px-8 py-4 rounded-full font-bold hover:bg-black transition-all shadow-lg no-underline flex items-center gap-2">
+            <Link href="/admin/kampanya-ekle" className="bg-blue-600 text-white px-8 py-4 rounded-3xl font-bold hover:bg-black shadow-lg transition-all no-underline">
               + Yeni Kampanya
             </Link>
           </div>
       </div>
 
-      {/* İSTATİSTİK KARTLARI */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          <StatCard title="Kampanya" value={stats.kampanya} icon="🏷️" color="bg-blue-50 text-blue-600" />
+      {/* İSTATİSTİKLER */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+          <StatCard title="Toplam" value={stats.kampanya} icon="🏷️" color="bg-blue-50 text-blue-600" />
           <StatCard title="Aktif" value={stats.aktifKampanya} icon="🔥" color="bg-green-50 text-green-600" />
-          
-          {/* Marka kartına tıklandığında da düzenleme sayfasına gitsin */}
-          <Link href="/admin/marka-duzenle" className="no-underline group">
-            <StatCard title="Marka (Düzenle)" value={stats.marka} icon="🏢" color="bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all" />
-          </Link>
-          
+          <StatCard title="Marka" value={stats.marka} icon="🏢" color="bg-purple-50 text-purple-600" />
           <StatCard title="Sektör" value={stats.sektor} icon="📦" color="bg-orange-50 text-orange-600" />
       </div>
 
-      {/* SON KAMPANYALAR TABLOSU */}
-      <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="font-black text-slate-900 uppercase tracking-widest text-xs">Son Eklenen Kampanyalar</h3>
+      {/* FİLTRELEME ALANI */}
+      <div className="bg-white p-4 rounded-3xl border border-slate-100 mb-6 shadow-sm">
+        <div className="relative">
+          <span className="absolute left-5 top-1/2 -translate-y-1/2 text-xl">🔍</span>
+          <input 
+            type="text" 
+            placeholder="Marka adı veya kampanya başlığı ile ara... (Örn: Akbank, Puma)"
+            className="w-full pl-14 pr-6 py-4 rounded-2xl bg-slate-50 border-none outline-none font-bold text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 transition-all"
+            value={aramaMetni}
+            onChange={(e) => setAramaMetni(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* TÜM KAMPANYALAR LİSTESİ */}
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+          <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+            <h3 className="font-black text-slate-900 uppercase tracking-widest text-[10px]">Kampanya Arşivi ({filtreliKampanyalar.length})</h3>
           </div>
-          <table className="w-full text-left border-collapse">
-              <thead>
-                  <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
-                      <th className="pb-4 pl-4">Marka</th>
-                      <th className="pb-4">Başlık</th>
-                      <th className="pb-4 text-right pr-4">İşlemler</th>
-                  </tr>
-              </thead>
-              <tbody className="text-sm font-bold text-slate-700">
-                  {sonKampanyalar.map((k) => (
-                      <tr key={k.id} className="group hover:bg-slate-50 border-b border-slate-50 last:border-0 transition-colors">
-                          <td className="py-5 pl-4 text-black">{k.yapan_marka_bilgisi?.marka_adi || 'Genel'}</td>
-                          <td className="py-5 font-normal text-slate-500 truncate max-w-xs">{k.baslik}</td>
-                          <td className="py-5 text-right pr-4 flex justify-end gap-2">
-                              <Link 
-                                href={`/admin/kampanya-duzenle/${k.slug}`} 
-                                className="px-4 py-2 bg-slate-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all no-underline text-slate-600 font-bold text-xs uppercase tracking-wide"
-                              >
-                                Düzenle
-                              </Link>
-                              <button 
-                                onClick={() => kampanyaSil(k.id)} 
-                                className="px-4 py-2 bg-slate-100 hover:bg-red-600 hover:text-white rounded-xl transition-all text-slate-600 font-bold text-xs uppercase tracking-wide"
-                              >
-                                Sil
-                              </button>
-                          </td>
-                      </tr>
-                  ))}
-              </tbody>
-          </table>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+                <thead>
+                    <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 bg-slate-50/50">
+                        <th className="py-4 pl-8">Marka</th>
+                        <th className="py-4">Kampanya Başlığı</th>
+                        <th className="py-4">Durum</th>
+                        <th className="py-4 text-right pr-8">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody className="text-sm font-bold text-slate-700">
+                    {filtreliKampanyalar.map((k) => {
+                      const isAktif = new Date(k.bitis_date) > new Date();
+                      return (
+                        <tr key={k.id} className="group hover:bg-blue-50/30 border-b border-slate-50 last:border-0 transition-colors">
+                            <td className="py-4 pl-8 font-black text-slate-900">{k.yapan_marka_bilgisi?.marka_adi || 'Genel'}</td>
+                            <td className="py-4 font-medium text-slate-500">{k.baslik}</td>
+                            <td className="py-4">
+                              <span className={`px-3 py-1 rounded-lg text-[10px] uppercase font-black ${isAktif ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-400'}`}>
+                                {isAktif ? 'Aktif' : 'Süresi Doldu'}
+                              </span>
+                            </td>
+                            <td className="py-4 text-right pr-8 flex justify-end gap-2">
+                                <Link 
+                                  href={`/admin/kampanya-duzenle/${k.slug}`} 
+                                  className="px-5 py-2.5 bg-slate-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all no-underline text-slate-600 font-bold text-[10px] uppercase tracking-wide"
+                                >
+                                  Düzenle / Yenile
+                                </Link>
+                                <button 
+                                  onClick={() => kampanyaSil(k.id)} 
+                                  className="px-4 py-2.5 bg-white border border-slate-100 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all text-slate-300 font-bold text-[10px] uppercase"
+                                >
+                                  Sil
+                                </button>
+                            </td>
+                        </tr>
+                      )
+                    })}
+                </tbody>
+            </table>
+          </div>
+          
+          {filtreliKampanyalar.length === 0 && (
+            <div className="p-20 text-center text-slate-300 font-black uppercase tracking-widest text-xs">Sonuç bulunamadı...</div>
+          )}
       </div>
     </div>
   );
@@ -128,11 +153,11 @@ export default function AdminDashboard() {
 
 function StatCard({ title, value, icon, color }: any) {
     return (
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center gap-5 shadow-sm h-full">
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl transition-all ${color}`}>{icon}</div>
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 flex items-center gap-4 shadow-sm">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg ${color}`}>{icon}</div>
             <div>
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{title}</p>
-                <p className="text-2xl font-black text-slate-900" style={{ fontFamily: 'Outfit' }}>{value}</p>
+                <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest leading-none mb-1">{title}</p>
+                <p className="text-xl font-black text-slate-900 leading-none" style={{ fontFamily: 'Outfit' }}>{value}</p>
             </div>
         </div>
     )
