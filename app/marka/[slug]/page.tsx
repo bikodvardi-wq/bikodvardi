@@ -20,8 +20,6 @@ export default function MarkaDetay({ params }: { params: Promise<{ slug: string 
 
     const veriGetir = async () => {
       setYukleniyor(true);
-      
-      // select('*') zaten yeni açtığın affiliate_link sütununu da getirecek
       const { data: mData } = await supabase
         .from('marka')
         .select('*')
@@ -86,15 +84,14 @@ export default function MarkaDetay({ params }: { params: Promise<{ slug: string 
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] leading-none">GERİ DÖN</span>
             </button>
 
-            {/* STRATEJİ 1: MARKA ANA SİTESİNE GİT BUTONU */}
             {marka.web_site_url && (
                 <a 
                     href={marka.web_site_url} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 bg-slate-900 text-white px-5 py-2.5 rounded-2xl hover:bg-blue-600 transition-all shadow-lg group"
+                    className="flex items-center gap-3 bg-slate-900 text-white px-5 py-2.5 rounded-2xl hover:bg-blue-600 transition-all shadow-lg group no-underline"
                 >
-                    <span className="text-[10px] font-black uppercase tracking-widest">Resmi Sitesine Git</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Marka Anasayfası</span>
                     <svg className="group-hover:translate-x-1 transition-transform" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
                 </a>
             )}
@@ -126,10 +123,6 @@ export default function MarkaDetay({ params }: { params: Promise<{ slug: string 
             const yapanMarkaAdi = k.yapan_marka_bilgisi?.marka_adi || "FIRSAT";
             const yapanMarkaLogo = k.yapan_marka_bilgisi?.logo_url;
             const turAdi = k.tur_bilgisi?.tur_adi || (k.kampanya_turu || "Kampanya");
-
-            // STRATEJİ 2: AFFILIATE LINK VARSA ONA GİTSİN, YOKSA DETAYA
-            const hedefLink = marka.affiliate_link ? marka.affiliate_link : `/kampanya/${k.slug}`;
-            const isExternal = !!marka.affiliate_link;
 
             return (
               <div key={k.id} className="group bg-[#0F172A] rounded-[2.5rem] border border-slate-800 shadow-xl overflow-hidden flex flex-col lg:flex-row transition-all hover:shadow-2xl relative">
@@ -164,31 +157,36 @@ export default function MarkaDetay({ params }: { params: Promise<{ slug: string 
                             {turAdi}
                           </span>
                           <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest leading-none">
-                            {isExternal ? "Kampanyaya katılmak için tıklayın" : "Detaylar için butona tıklayın"}
+                            {marka.affiliate_link ? "Hızlı mağaza yönlendirmesi" : "Detaylı bilgi için inceleyin"}
                           </p>
                       </div>
                   </div>
 
-                  <div className="bg-[#1e293b]/30 lg:w-60 border-t lg:border-t-0 lg:border-l border-slate-800 p-8 flex flex-col items-center justify-center gap-3">
-                    {isExternal ? (
+                  {/* --- BUTON ALANI GÜNCELLENDİ --- */}
+                  <div className="bg-[#1e293b]/30 lg:w-64 border-t lg:border-t-0 lg:border-l border-slate-800 p-8 flex flex-col items-center justify-center gap-3">
+                    
+                    {/* 1. MAĞAZA BUTONU (Eğer Link Varsa) */}
+                    {marka.affiliate_link && (
                         <a 
-                            href={hedefLink}
+                            href={marka.affiliate_link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-full bg-orange-500 text-white py-5 rounded-[1.8rem] font-black text-xs uppercase tracking-[0.15em] shadow-xl hover:bg-orange-600 transition-all transform active:scale-95 text-center no-underline animate-pulse"
+                            className="w-full bg-orange-500 text-white py-4 rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.15em] shadow-xl hover:bg-orange-600 transition-all transform active:scale-95 text-center no-underline animate-pulse"
                         >
-                            FIRSATI YAKALA
+                            MAĞAZA SAYFASINA GİT
                         </a>
-                    ) : (
-                        <Link 
-                            href={hedefLink} 
-                            className="w-full bg-white text-[#0F172A] py-5 rounded-[1.8rem] font-black text-xs uppercase tracking-[0.15em] shadow-xl hover:bg-blue-600 hover:text-white transition-all transform active:scale-95 text-center no-underline"
-                        >
-                            İNCELE
-                        </Link>
                     )}
-                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">
-                        {isExternal ? "🔥 Kaçırma" : "Hemen Keşfet"}
+
+                    {/* 2. DETAY BUTONU (Her Zaman Var) */}
+                    <Link 
+                        href={`/kampanya/${k.slug}`} 
+                        className="w-full bg-white text-[#0F172A] py-4 rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.15em] shadow-xl hover:bg-blue-600 hover:text-white transition-all transform active:scale-95 text-center no-underline"
+                    >
+                        KAMPANYA DETAYI
+                    </Link>
+                    
+                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em]">
+                        {marka.affiliate_link ? "⚡ Fırsatı Kaçırma" : "ℹ️ Detayları İncele"}
                     </p>
                   </div>
               </div>
