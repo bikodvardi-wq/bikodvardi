@@ -59,25 +59,68 @@ export default function KampanyaEkle() {
     e.preventDefault();
     setYukleniyor(true);
 
-    // --- 1. ADIM: MÜKERRER LİNK KONTROLÜ ---
-    // Eğer link alanı doluysa kontrol et
+    // --- 1. ADIM: GELİŞMİŞ MÜKERRER KONTROLÜ ---
+    
+    // A) LİNK KONTROLÜ (Eğer link girildiyse)
     if (form.link && form.link.trim() !== "") {
-        const { data: varMi, error: kontrolHatasi } = await supabase
+        const { data: linkVarMi } = await supabase
             .from('kampanya')
             .select('id, baslik')
             .eq('link', form.link.trim())
             .maybeSingle();
 
-        if (varMi) {
-            alert(`⚠️ BU KAMPANYA ZATEN VAR!\n\nGirmiş olduğunuz link şu kampanya ile eşleşiyor:\n"${varMi.baslik}"\n\nLütfen linki kontrol edin veya mevcut kampanyayı güncelleyin.`);
+        if (linkVarMi) {
+            alert(`⚠️ BU LİNK ZATEN KAYITLI!\n\n"${linkVarMi.baslik}" isimli kampanya aynı linki kullanıyor.`);
             setYukleniyor(false);
-            return; // Kayıt işlemini durdur
-        }
-
-        if (kontrolHatasi) {
-            console.error("Kontrol hatası:", kontrolHatasi);
+            return;
         }
     }
+
+    // B) MARKA İKİLİSİ KONTROLÜ (Yapan Marka + Faydalanan Marka Aynı mı?)
+    // Sadece her iki marka da seçilmişse bu kontrolü yap
+    if (form.yapan_marka && form.fayd_marka) {
+        const { data: markaIkiliVarMi } = await supabase
+            .from('kampanya')
+            .select('id, baslik')
+            .eq('yapan_marka', form.yapan_marka)
+            .eq('fayd_marka', form.fayd_marka)
+            .gt('bitis_date', new Date().toISOString()) // Sadece hala yayında olan (aktif) kampanyaları kontrol et
+            .maybeSingle();
+
+        if (markaIkiliVarMi) {
+            const onay = confirm(`📢 UYARI: Bu iki marka arasında (Örn: Akbank-Puma) zaten aktif bir kampanya var: \n"${markaIkiliVarMi.baslik}"\n\nYine de ikinci bir kampanya olarak eklemek istiyor musunuz?`);
+            if (!onay) {
+                setYukleniyor(false);
+                return;
+            }
+        }
+    }
+
+    // --- 2. ADIM: KAYIT İŞLEMİ (Kontroller geçildiyse) ---
+    const yeniSlug = slugOlustur(form.baslik);
+
+    const payload = {
+        baslik: form.baslik,
+        detay: form.detay,
+        link: form.link ? form.link.trim() : null,
+        bitis_date: form.bitis_date,
+        yapan_marka: form.yapan_marka || null,
+        fayd_marka: form.fayd_marka || null,
+        gecerli_sektor_id: form.gecerli_sektor_id || null,
+        kampanya_turu: form.kampanya_turu,
+        slug: yeniSlug
+    };
+
+    const { error } = await supabase.from('kampanya').insert([payload]);
+
+    if (error) {
+      alert('Hata oluştu: ' + error.message);
+      setYukleniyor(false);
+    } else {
+      alert('✅ Kampanya başarıyla oluşturuldu!');
+      router.push('/admin');
+    }
+  };
 
     // --- 2. ADIM: KAYIT İŞLEMİ (Mükerrer değilse buraya geçer) ---
     const yeniSlug = slugOlustur(form.baslik);
