@@ -11,17 +11,34 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "biKodVardı | Aradığın kod, tek tıkla.",
-  description: "En güncel indirim kodları ve fırsatlar.",
-  manifest: "/manifest.json",
+  title: {
+    default: "biKodVardı | En Güncel İndirim Kodları ve Kampanyalar",
+    template: "%s | biKodVardı"
+  },
+  description: "2026'nın en güncel banka kampanyaları, indirim kodları ve marka fırsatları. Akbank, Ziraat, İş Bankası ve yüzlerce markanın kodları tek tıkla elinizde.",
+  keywords: ["indirim kodu", "kampanyalar", "banka kampanyaları", "indirim kuponu", "güncel fırsatlar", "bi kod vardı"],
+  authors: [{ name: "biKodVardı" }],
+  creator: "biKodVardı",
+  publisher: "biKodVardı",
+  manifest: "/manifest.json", 
   icons: {
-    icon: "/icon.png", // Tarayıcı sekmesi için
-    apple: "/apple-icon.png", // iPhone/iPad için
-  }, 
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "biKodVardı",
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+  },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "https://bikodvardi.com",
+    siteName: "biKodVardı",
+    title: "biKodVardı | Aradığın kod, tek tıkla.",
+    description: "Yüzlerce markanın en güncel indirim ve kampanya kodları.",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "biKodVardı | İndirim Kodları",
+    description: "Aradığın indirim kodu tek tıkla cebinde!",
+    images: ["/og-image.png"],
   },
 };
 
@@ -40,6 +57,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* GOOGLE ADSENSE KODU BİTİŞ */}
       </head>
       <body>
+        <script
+  type="application/ld+json"
+  dangerouslySetInnerHTML={{
+    __html: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "biKodVardı",
+      "url": "https://bikodvardi.com",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://bikodvardi.com/marka?ara={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    })
+  }}
+/>
         {children}
         {/* Google Analytics Buraya Eklendi */}
         <GoogleAnalytics gaId="G-0N4WX0JBNB" /> 
