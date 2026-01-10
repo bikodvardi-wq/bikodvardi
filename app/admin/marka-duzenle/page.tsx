@@ -3,9 +3,17 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
+// Marka verisi için bir tip tanımlayalım (TypeScript hatalarını önler)
+interface Marka {
+  id: number;
+  marka_adi: string;
+  affiliate_link?: string;
+  web_site_url?: string;
+}
+
 export default function AdminMarkaDuzenle() {
-  const [markalar, setMarkalar] = useState<any[]>([]);
-  const [seciliMarka, setSeciliMarka] = useState<any>(null);
+  const [markalar, setMarkalar] = useState<Marka[]>([]);
+  const [seciliMarka, setSeciliMarka] = useState<Marka | null>(null);
   const [affiliateLink, setAffiliateLink] = useState('');
   const [webSiteUrl, setWebSiteUrl] = useState('');
   const [yukleniyor, setYukleniyor] = useState(false);
@@ -13,13 +21,21 @@ export default function AdminMarkaDuzenle() {
 
   useEffect(() => {
     const markalariGetir = async () => {
-      const { data } = await supabase.from('marka').select('*').order('marka_adi', { ascending: true });
-      if (data) setMarkalar(data);
+      const { data, error } = await supabase
+        .from('marka')
+        .select('*')
+        .order('marka_adi', { ascending: true });
+      
+      if (error) {
+        console.error("Veri çekme hatası:", error);
+      } else if (data) {
+        setMarkalar(data as Marka[]);
+      }
     };
     markalariGetir();
   }, []);
 
-  const markaSec = (m: any) => {
+  const markaSec = (m: Marka) => {
     setSeciliMarka(m);
     setAffiliateLink(m.affiliate_link || '');
     setWebSiteUrl(m.web_site_url || '');
@@ -29,6 +45,7 @@ export default function AdminMarkaDuzenle() {
   const guncelle = async () => {
     if (!seciliMarka) return;
     setYukleniyor(true);
+    setMesaj('');
     
     const { error } = await supabase
       .from('marka')
@@ -43,58 +60,79 @@ export default function AdminMarkaDuzenle() {
       setMesaj("Hata: " + error.message);
     } else {
       setMesaj("Başarıyla güncellendi! ✅");
-      const yeniList = markalar.map(m => m.id === seciliMarka.id ? {...m, affiliate_link: affiliateLink, web_site_url: webSiteUrl} : m);
+      const yeniList = markalar.map(m => 
+        m.id === seciliMarka.id ? { ...m, affiliate_link: affiliateLink, web_site_url: webSiteUrl } : m
+      );
       setMarkalar(yeniList);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8 font-sans">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-black text-slate-900 mb-8 uppercase tracking-tighter">
-          Admin Panel
+        <h1 className="text-2xl md:text-3xl font-black mb-8 uppercase tracking-tighter">
+          Admin Paneli
         </h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-white border rounded-3xl p-6 h-[600px] overflow-y-auto shadow-sm">
-            <div className="space-y-2">
-              {markalar.map(m => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Marka Listesi */}
+          <div className="bg-white border rounded-2xl p-4 h-[500px] overflow-y-auto shadow-sm">
+            <div className="space-y-1">
+              {markalar.map((m) => (
                 <button 
                   key={m.id}
                   onClick={() => markaSec(m)}
-                  className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all ${seciliMarka?.id === m.id ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+                  className={`w-full text-left px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                    seciliMarka?.id === m.id ? 'bg-blue-600 text-white' : 'hover:bg-slate-100'
+                  }`}
                 >
                   {m.marka_adi}
                 </button>
               ))}
             </div>
           </div>
-          <div className="md:col-span-2 bg-white border rounded-3xl p-8 shadow-sm">
+
+          {/* Düzenleme Alanı */}
+          <div className="md:col-span-2 bg-white border rounded-2xl p-6 shadow-sm">
             {seciliMarka ? (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-black text-slate-900">{seciliMarka.marka_adi}</h2>
+              <div className="space-y-5">
+                <h2 className="text-xl font-bold">{seciliMarka.marka_adi}</h2>
                 <div className="space-y-4">
-                  <input 
-                    type="text" 
-                    value={affiliateLink}
-                    onChange={(e) => setAffiliateLink(e.target.value)}
-                    placeholder="Affiliate Link"
-                    className="w-full bg-slate-50 border rounded-2xl px-5 py-4 text-sm"
-                  />
-                  <input 
-                    type="text" 
-                    value={webSiteUrl}
-                    onChange={(e) => setWebSiteUrl(e.target.value)}
-                    placeholder="Web Site Link"
-                    className="w-full bg-slate-50 border rounded-2xl px-5 py-4 text-sm"
-                  />
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 uppercase">Affiliate Link</label>
+                    <input 
+                      type="text" 
+                      value={affiliateLink}
+                      onChange={(e) => setAffiliateLink(e.target.value)}
+                      className="w-full bg-slate-50 border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 uppercase">Resmi Site Link</label>
+                    <input 
+                      type="text" 
+                      value={webSiteUrl}
+                      onChange={(e) => setWebSiteUrl(e.target.value)}
+                      className="w-full bg-slate-50 border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
                 </div>
-                <button onClick={guncelle} disabled={yukleniyor} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-xs uppercase hover:bg-blue-600">
-                  {yukleniyor ? 'İŞLENİYOR...' : 'KAYDET'}
+                <button 
+                  onClick={guncelle} 
+                  disabled={yukleniyor} 
+                  className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all disabled:opacity-50"
+                >
+                  {yukleniyor ? 'İŞLENİYOR...' : 'DEĞİŞİKLİKLERİ KAYDET'}
                 </button>
-                {mesaj && <p className="text-center font-bold text-xs">{mesaj}</p>}
+                {mesaj && (
+                  <p className={`text-center font-bold text-sm ${mesaj.includes('Hata') ? 'text-red-500' : 'text-green-600'}`}>
+                    {mesaj}
+                  </p>
+                )}
               </div>
             ) : (
-              <p className="text-center text-slate-300 font-bold uppercase text-[10px]">Marka Seçiniz</p>
+              <div className="h-full flex items-center justify-center">
+                <p className="text-slate-400 font-bold uppercase text-xs">Lütfen Marka Seçin</p>
+              </div>
             )}
           </div>
         </div>
