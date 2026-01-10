@@ -236,6 +236,29 @@ export default function Home() {
           </div>
         </div>
       </footer>
+      {/* Alt Bilgi Alanı (Footer) */}
+      <footer className="mt-20 py-12 text-center border-t border-slate-100 bg-white/30 backdrop-blur-sm">
+          <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.4em] mb-6">
+              bi<span className="text-blue-600">kod</span>vardı — 2026
+          </p>
+          
+          <div className="flex justify-center items-center gap-8">
+            <Link 
+              href="/hakkimizda" 
+              className="text-[10px] font-black text-slate-500 hover:text-blue-600 uppercase tracking-widest transition-colors no-underline"
+            >
+              Hakkımızda
+            </Link>
+            
+            {/* Sadece senin erişeceğin gizli yönetim linki */}
+            <Link 
+              href="/admin" 
+              className="text-[10px] font-black text-slate-300 hover:text-slate-900 uppercase tracking-widest transition-colors no-underline"
+            >
+              Yönetim
+            </Link>
+          </div>
+      </footer>
     </main>
   );
 }
