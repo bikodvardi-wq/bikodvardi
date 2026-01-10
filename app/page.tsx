@@ -236,24 +236,24 @@ export default function Home() {
           </div>
         </div>
       </footer>
-      {/* Alt Bilgi Alanı (Footer) */}
-      {/* Alt Bilgi Alanı (Footer) */}
+ 
       <footer className="mt-20 py-12 text-center border-t border-slate-100 bg-white/50">
-          <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.4em] mb-6">
-              bi<span className="text-blue-600">kod</span>vardı — 2026
-          </p>
-          
-          <div className="flex justify-center items-center gap-8">
-            <Link 
-              href="/hakkimizda" 
-              className="text-[10px] font-black text-slate-500 hover:text-blue-600 uppercase tracking-widest transition-colors no-underline"
-            >
-              Hakkımızda
-            </Link>
-            
-            {/* Yönetim linki kaldırıldı. Sen panele tarayıcıdan /admin yazarak girmeye devam edebilirsin. */}
-          </div>
-      </footer>
+    <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.4em] mb-6">
+        bi<span className="text-blue-600">kod</span>vardı — 2026
+    </p>
+    
+    <div className="flex flex-wrap justify-center items-center gap-6 md:gap-12">
+      <Link href="/hakkimizda" className="text-[10px] font-black text-slate-500 hover:text-blue-600 uppercase tracking-widest no-underline transition-colors">
+        Hakkımızda
+      </Link>
+      <Link href="/gizlilik-politikasi" className="text-[10px] font-black text-slate-500 hover:text-blue-600 uppercase tracking-widest no-underline transition-colors">
+        Gizlilik Politikası
+      </Link>
+      <Link href="/iletisim" className="text-[10px] font-black text-slate-500 hover:text-blue-600 uppercase tracking-widest no-underline transition-colors">
+        İletişim
+      </Link>
+    </div>
+</footer>
     </main>
   );
 }
