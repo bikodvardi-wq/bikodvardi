@@ -13,7 +13,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "biKodVardı | Aradığın kod, tek tıkla.",
   description: "En güncel indirim kodları ve fırsatlar.",
-  manifest: "/manifest.json", 
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.png", // Tarayıcı sekmesi için
+    apple: "/apple-icon.png", // iPhone/iPad için
+  }, 
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
