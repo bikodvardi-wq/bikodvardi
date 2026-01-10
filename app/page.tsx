@@ -237,7 +237,8 @@ export default function Home() {
         </div>
       </footer>
       {/* Alt Bilgi Alanı (Footer) */}
-      <footer className="mt-20 py-12 text-center border-t border-slate-100 bg-white/30 backdrop-blur-sm">
+      {/* Alt Bilgi Alanı (Footer) */}
+      <footer className="mt-20 py-12 text-center border-t border-slate-100 bg-white/50">
           <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.4em] mb-6">
               bi<span className="text-blue-600">kod</span>vardı — 2026
           </p>
@@ -250,13 +251,7 @@ export default function Home() {
               Hakkımızda
             </Link>
             
-            {/* Sadece senin erişeceğin gizli yönetim linki */}
-            <Link 
-              href="/admin" 
-              className="text-[10px] font-black text-slate-300 hover:text-slate-900 uppercase tracking-widest transition-colors no-underline"
-            >
-              Yönetim
-            </Link>
+            {/* Yönetim linki kaldırıldı. Sen panele tarayıcıdan /admin yazarak girmeye devam edebilirsin. */}
           </div>
       </footer>
     </main>
