@@ -59,17 +59,37 @@ export default function KampanyaEkle() {
     e.preventDefault();
     setYukleniyor(true);
 
+    // --- 1. ADIM: MÜKERRER LİNK KONTROLÜ ---
+    // Eğer link alanı doluysa kontrol et
+    if (form.link && form.link.trim() !== "") {
+        const { data: varMi, error: kontrolHatasi } = await supabase
+            .from('kampanya')
+            .select('id, baslik')
+            .eq('link', form.link.trim())
+            .maybeSingle();
+
+        if (varMi) {
+            alert(`⚠️ BU KAMPANYA ZATEN VAR!\n\nGirmiş olduğunuz link şu kampanya ile eşleşiyor:\n"${varMi.baslik}"\n\nLütfen linki kontrol edin veya mevcut kampanyayı güncelleyin.`);
+            setYukleniyor(false);
+            return; // Kayıt işlemini durdur
+        }
+
+        if (kontrolHatasi) {
+            console.error("Kontrol hatası:", kontrolHatasi);
+        }
+    }
+
+    // --- 2. ADIM: KAYIT İŞLEMİ (Mükerrer değilse buraya geçer) ---
     const yeniSlug = slugOlustur(form.baslik);
 
-    // DÜZELTME: Boş stringleri NULL'a çeviriyoruz ki veritabanı kızmasın
     const payload = {
         baslik: form.baslik,
         detay: form.detay,
-        link: form.link,
+        link: form.link ? form.link.trim() : null,
         bitis_date: form.bitis_date,
         yapan_marka: form.yapan_marka || null,
-        fayd_marka: form.fayd_marka || null, // Seçilmediyse NULL gider
-        gecerli_sektor_id: form.gecerli_sektor_id || null, // Seçilmediyse NULL gider
+        fayd_marka: form.fayd_marka || null,
+        gecerli_sektor_id: form.gecerli_sektor_id || null,
         kampanya_turu: form.kampanya_turu,
         slug: yeniSlug
     };
@@ -86,7 +106,7 @@ export default function KampanyaEkle() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto py-10 px-6">
       <h2 className="text-3xl font-black text-slate-900 mb-8 tracking-tight" style={{ fontFamily: 'Outfit' }}>Yeni Kampanya Oluştur</h2>
       
       <form onSubmit={kaydet} className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-xl border border-slate-100 space-y-8">
@@ -98,7 +118,7 @@ export default function KampanyaEkle() {
               required
               type="text" 
               placeholder="Örn: Tüm Marketlerde %20 İndirim" 
-              className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-bold text-lg outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-50 transition-all"
+              className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-bold text-lg outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-50 transition-all text-slate-900"
               value={form.baslik}
               onChange={(e) => setForm({...form, baslik: e.target.value})}
             />
@@ -110,7 +130,7 @@ export default function KampanyaEkle() {
             <textarea 
               rows={6}
               placeholder="Kampanya koşullarını ve detaylarını buraya yazın..." 
-              className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-medium outline-none focus:border-blue-600 transition-all"
+              className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-medium outline-none focus:border-blue-600 transition-all text-slate-900"
               value={form.detay}
               onChange={(e) => setForm({...form, detay: e.target.value})}
             />
@@ -122,12 +142,12 @@ export default function KampanyaEkle() {
                 <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Kampanyayı Yapan Marka</label>
                 <select 
                   required
-                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-bold outline-none cursor-pointer hover:bg-slate-100 transition-colors"
+                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-bold outline-none cursor-pointer hover:bg-slate-100 transition-colors text-slate-900"
                   value={form.yapan_marka}
                   onChange={(e) => setForm({...form, yapan_marka: e.target.value})}
                 >
                     <option value="">Seçiniz...</option>
-                    {markalar.map(m => <option key={m.id} value={m.id}>{m.marka_adi}</option>)}
+                    {markalar.map(m => <option key={m.id} value={m.id} className="text-slate-900">{m.marka_adi}</option>)}
                 </select>
             </div>
 
@@ -135,28 +155,27 @@ export default function KampanyaEkle() {
             <div>
                 <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Faydalanılan Marka (Varsa)</label>
                 <select 
-                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-bold outline-none cursor-pointer hover:bg-slate-100 transition-colors"
+                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-bold outline-none cursor-pointer hover:bg-slate-100 transition-colors text-slate-900"
                   value={form.fayd_marka}
                   onChange={(e) => setForm({...form, fayd_marka: e.target.value})}
                 >
                     <option value="">Yok (Genel Kampanya)</option>
-                    {markalar.map(m => <option key={m.id} value={m.id}>{m.marka_adi}</option>)}
+                    {markalar.map(m => <option key={m.id} value={m.id} className="text-slate-900">{m.marka_adi}</option>)}
                 </select>
             </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* SEKTÖR (Zorunluluk Kaldırıldı) */}
+            {/* SEKTÖR */}
             <div>
                 <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Geçerli Sektör (Opsiyonel)</label>
                 <select 
-                  // required  <-- BURAYI SİLDİK
-                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-bold outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-bold outline-none text-slate-900"
                   value={form.gecerli_sektor_id}
                   onChange={(e) => setForm({...form, gecerli_sektor_id: e.target.value})}
                 >
                     <option value="">Seçiniz (Genelse Seçin)</option>
-                    {sektorler.map(s => <option key={s.id} value={s.id}>{s.sektor_adi}</option>)}
+                    {sektorler.map(s => <option key={s.id} value={s.id} className="text-slate-900">{s.sektor_adi}</option>)}
                 </select>
             </div>
 
@@ -165,12 +184,12 @@ export default function KampanyaEkle() {
                 <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Kampanya Türü</label>
                 <select 
                   required
-                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-bold outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-bold outline-none text-slate-900"
                   value={form.kampanya_turu}
                   onChange={(e) => setForm({...form, kampanya_turu: e.target.value})}
                 >
                     <option value="">Seçiniz...</option>
-                    {turler.map(t => <option key={t.id} value={t.id}>{t.tur_adi}</option>)}
+                    {turler.map(t => <option key={t.id} value={t.id} className="text-slate-900">{t.tur_adi}</option>)}
                 </select>
             </div>
         </div>
@@ -182,7 +201,7 @@ export default function KampanyaEkle() {
                 <input 
                   type="text" 
                   placeholder="https://..." 
-                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-medium outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-medium outline-none text-slate-900"
                   value={form.link}
                   onChange={(e) => setForm({...form, link: e.target.value})}
                 />
@@ -194,7 +213,7 @@ export default function KampanyaEkle() {
                 <input 
                   required
                   type="date" 
-                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-medium outline-none cursor-pointer"
+                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-medium outline-none cursor-pointer text-slate-900"
                   value={form.bitis_date}
                   onChange={(e) => setForm({...form, bitis_date: e.target.value})}
                 />
@@ -207,7 +226,7 @@ export default function KampanyaEkle() {
           type="submit" 
           className="w-full bg-blue-600 hover:bg-blue-700 text-white p-6 rounded-[2rem] text-xl font-black tracking-tight transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1"
         >
-          {yukleniyor ? 'Kaydediliyor...' : 'Kampanyayı Yayınla ✨'}
+          {yukleniyor ? 'Kontrol Ediliyor...' : 'Kampanyayı Yayınla ✨'}
         </button>
 
       </form>
