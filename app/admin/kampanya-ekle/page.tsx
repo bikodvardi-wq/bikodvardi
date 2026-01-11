@@ -61,7 +61,7 @@ export default function KampanyaEkle() {
 
     // --- 1. ADIM: GELİŞMİŞ MÜKERRER KONTROLÜ ---
     
-    // A) LİNK KONTROLÜ (Eğer link girildiyse)
+    // A) LİNK KONTROLÜ
     if (form.link && form.link.trim() !== "") {
         const { data: linkVarMi } = await supabase
             .from('kampanya')
@@ -76,19 +76,18 @@ export default function KampanyaEkle() {
         }
     }
 
-    // B) MARKA İKİLİSİ KONTROLÜ (Yapan Marka + Faydalanan Marka Aynı mı?)
-    // Sadece her iki marka da seçilmişse bu kontrolü yap
+    // B) MARKA İKİLİSİ KONTROLÜ
     if (form.yapan_marka && form.fayd_marka) {
         const { data: markaIkiliVarMi } = await supabase
             .from('kampanya')
             .select('id, baslik')
             .eq('yapan_marka', form.yapan_marka)
             .eq('fayd_marka', form.fayd_marka)
-            .gt('bitis_date', new Date().toISOString()) // Sadece hala yayında olan (aktif) kampanyaları kontrol et
+            .gt('bitis_date', new Date().toISOString())
             .maybeSingle();
 
         if (markaIkiliVarMi) {
-            const onay = confirm(`📢 UYARI: Bu iki marka arasında (Örn: Akbank-Puma) zaten aktif bir kampanya var: \n"${markaIkiliVarMi.baslik}"\n\nYine de ikinci bir kampanya olarak eklemek istiyor musunuz?`);
+            const onay = confirm(`📢 UYARI: Bu iki marka arasında zaten aktif bir kampanya var: \n"${markaIkiliVarMi.baslik}"\n\nYine de eklemek istiyor musunuz?`);
             if (!onay) {
                 setYukleniyor(false);
                 return;
@@ -96,33 +95,7 @@ export default function KampanyaEkle() {
         }
     }
 
-    // --- 2. ADIM: KAYIT İŞLEMİ (Kontroller geçildiyse) ---
-    const yeniSlug = slugOlustur(form.baslik);
-
-    const payload = {
-        baslik: form.baslik,
-        detay: form.detay,
-        link: form.link ? form.link.trim() : null,
-        bitis_date: form.bitis_date,
-        yapan_marka: form.yapan_marka || null,
-        fayd_marka: form.fayd_marka || null,
-        gecerli_sektor_id: form.gecerli_sektor_id || null,
-        kampanya_turu: form.kampanya_turu,
-        slug: yeniSlug
-    };
-
-    const { error } = await supabase.from('kampanya').insert([payload]);
-
-    if (error) {
-      alert('Hata oluştu: ' + error.message);
-      setYukleniyor(false);
-    } else {
-      alert('✅ Kampanya başarıyla oluşturuldu!');
-      router.push('/admin');
-    }
-  };
-
-    // --- 2. ADIM: KAYIT İŞLEMİ (Mükerrer değilse buraya geçer) ---
+    // --- 2. ADIM: KAYIT İŞLEMİ ---
     const yeniSlug = slugOlustur(form.baslik);
 
     const payload = {
@@ -190,7 +163,7 @@ export default function KampanyaEkle() {
                   onChange={(e) => setForm({...form, yapan_marka: e.target.value})}
                 >
                     <option value="">Seçiniz...</option>
-                    {markalar.map(m => <option key={m.id} value={m.id} className="text-slate-900">{m.marka_adi}</option>)}
+                    {markalar.map(m => <option key={m.id} value={m.id}>{m.marka_adi}</option>)}
                 </select>
             </div>
 
@@ -203,7 +176,7 @@ export default function KampanyaEkle() {
                   onChange={(e) => setForm({...form, fayd_marka: e.target.value})}
                 >
                     <option value="">Yok (Genel Kampanya)</option>
-                    {markalar.map(m => <option key={m.id} value={m.id} className="text-slate-900">{m.marka_adi}</option>)}
+                    {markalar.map(m => <option key={m.id} value={m.id}>{m.marka_adi}</option>)}
                 </select>
             </div>
         </div>
@@ -218,7 +191,7 @@ export default function KampanyaEkle() {
                   onChange={(e) => setForm({...form, gecerli_sektor_id: e.target.value})}
                 >
                     <option value="">Seçiniz (Genelse Seçin)</option>
-                    {sektorler.map(s => <option key={s.id} value={s.id} className="text-slate-900">{s.sektor_adi}</option>)}
+                    {sektorler.map(s => <option key={s.id} value={s.id}>{s.sektor_adi}</option>)}
                 </select>
             </div>
 
@@ -232,7 +205,7 @@ export default function KampanyaEkle() {
                   onChange={(e) => setForm({...form, kampanya_turu: e.target.value})}
                 >
                     <option value="">Seçiniz...</option>
-                    {turler.map(t => <option key={t.id} value={t.id} className="text-slate-900">{t.tur_adi}</option>)}
+                    {turler.map(t => <option key={t.id} value={t.id}>{t.tur_adi}</option>)}
                 </select>
             </div>
         </div>
@@ -263,7 +236,6 @@ export default function KampanyaEkle() {
             </div>
         </div>
 
-        {/* KAYDET BUTONU */}
         <button 
           disabled={yukleniyor}
           type="submit" 
