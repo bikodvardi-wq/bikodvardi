@@ -9,23 +9,22 @@ export default function AdminDashboard() {
   const [tumKampanyalar, setTumKampanyalar] = useState<any[]>([]);
   const [filtreliKampanyalar, setFiltreliKampanyalar] = useState<any[]>([]);
   const [aramaMetni, setAramaMetni] = useState('');
-  const [durumFiltresi, setDurumFiltresi] = useState('hepsi'); // YENİ: Durum filtresi state'i
+  const [durumFiltresi, setDurumFiltresi] = useState('hepsi'); 
   const [yukleniyor, setYukleniyor] = useState(true);
 
   const veriGetir = async () => {
     setYukleniyor(true);
     
-    // İstatistikler
-    const { count: kSayisi } = await supabase.from('campaign').select('*', { count: 'exact' });
+    // TABLO ADI DÜZELTİLDİ: 'campaign' yerine 'kampanya' kullanıldı
+    const { count: kSayisi } = await supabase.from('kampanya').select('*', { count: 'exact' });
     const { count: mSayisi } = await supabase.from('marka').select('*', { count: 'exact' });
     const { count: sSayisi } = await supabase.from('sektor').select('*', { count: 'exact' });
-    const { count: aSayisi } = await supabase.from('campaign').select('*', { count: 'exact' }).gt('bitis_date', new Date().toISOString());
+    const { count: aSayisi } = await supabase.from('kampanya').select('*', { count: 'exact' }).gt('bitis_date', new Date().toISOString());
 
     setStats({ kampanya: kSayisi || 0, marka: mSayisi || 0, sektor: sSayisi || 0, aktifKampanya: aSayisi || 0 });
 
-    // Tüm Kampanyalar
     const { data } = await supabase
-      .from('campaign')
+      .from('kampanya')
       .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi)')
       .order('id', { ascending: false });
       
@@ -36,18 +35,15 @@ export default function AdminDashboard() {
 
   useEffect(() => { veriGetir(); }, []);
 
-  // GELİŞMİŞ CANLI FİLTRELEME (Hem metin hem durum)
   useEffect(() => {
     const sonuclar = tumKampanyalar.filter(k => {
       const bugun = new Date().toISOString().split('T')[0];
       const isAktif = k.bitis_date >= bugun;
 
-      // 1. Metin Uyumu (Başlık veya Marka)
       const metinUyumu = 
         k.baslik.toLowerCase().includes(aramaMetni.toLowerCase()) ||
         k.yapan_marka_bilgisi?.marka_adi.toLowerCase().includes(aramaMetni.toLowerCase());
 
-      // 2. Durum Uyumu
       let durumUyumu = true;
       if (durumFiltresi === 'aktif') durumUyumu = isAktif;
       if (durumFiltresi === 'pasif') durumUyumu = !isAktif;
@@ -59,7 +55,7 @@ export default function AdminDashboard() {
 
   const kampanyaSil = async (id: number) => {
     if (confirm('Bu kampanyayı silmek istediğine emin misin?')) {
-      const { error } = await supabase.from('campaign').delete().eq('id', id);
+      const { error } = await supabase.from('kampanya').delete().eq('id', id);
       if (!error) veriGetir();
     }
   };
@@ -69,7 +65,6 @@ export default function AdminDashboard() {
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto font-['Plus_Jakarta_Sans']">
       
-      {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
           <div>
             <h2 className="text-4xl font-[900] text-slate-900 tracking-tighter" style={{ fontFamily: 'Outfit' }}>Komuta Merkezi 🚀</h2>
@@ -85,7 +80,6 @@ export default function AdminDashboard() {
           </div>
       </div>
 
-      {/* İSTATİSTİKLER */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           <StatCard title="Toplam" value={stats.kampanya} icon="🏷️" color="bg-blue-50 text-blue-600" />
           <StatCard title="Aktif" value={stats.aktifKampanya} icon="🔥" color="bg-green-50 text-green-600" />
@@ -93,7 +87,7 @@ export default function AdminDashboard() {
           <StatCard title="Sektör" value={stats.sektor} icon="📦" color="bg-orange-50 text-orange-600" />
       </div>
 
-      {/* FİLTRELEME ALANI */}
+      {/* FİLTRELEME ALANI - SADELEŞTİRİLDİ */}
       <div className="bg-white p-4 rounded-3xl border border-slate-100 mb-6 shadow-sm flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
           <span className="absolute left-5 top-1/2 -translate-y-1/2 text-xl">🔍</span>
@@ -106,19 +100,17 @@ export default function AdminDashboard() {
           />
         </div>
         
-        {/* YENİ: DURUM SEÇİCİ */}
         <select 
           className="px-6 py-4 rounded-2xl bg-slate-50 border-none outline-none font-bold text-slate-600 cursor-pointer focus:ring-2 focus:ring-blue-500 transition-all"
           value={durumFiltresi}
           onChange={(e) => setDurumFiltresi(e.target.value)}
         >
-          <option value="hepsi">Tüm Durumlar</option>
+          <option value="hepsi">Durum: Hepsi</option>
           <option value="aktif">Sadece Aktifler ✅</option>
           <option value="pasif">Süresi Dolanlar ❌</option>
         </select>
       </div>
 
-      {/* TÜM KAMPANYALAR LİSTESİ */}
       <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
           <div className="p-8 border-b border-slate-50 flex justify-between items-center">
             <h3 className="font-black text-slate-900 uppercase tracking-widest text-[10px]">Kampanya Arşivi ({filtreliKampanyalar.length})</h3>
@@ -168,7 +160,7 @@ export default function AdminDashboard() {
           </div>
           
           {filtreliKampanyalar.length === 0 && (
-            <div className="p-20 text-center text-slate-300 font-black uppercase tracking-widest text-xs">Aradığınız kriterde sonuç bulunamadı...</div>
+            <div className="p-20 text-center text-slate-300 font-black uppercase tracking-widest text-xs">Sonuç bulunamadı...</div>
           )}
       </div>
     </div>
