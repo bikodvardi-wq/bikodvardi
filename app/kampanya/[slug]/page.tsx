@@ -11,7 +11,6 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
   const [yukleniyor, setYukleniyor] = useState(true);
 
   useEffect(() => {
-    // Fontları yükle
     const fontLink = document.createElement('link');
     fontLink.href = 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&family=Inter:wght@400;700&display=swap';
     fontLink.rel = 'stylesheet';
@@ -19,8 +18,6 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
 
     const veriGetir = async () => {
       setYukleniyor(true);
-      
-      // DÜZELTME: 'aciklama' yerine 'detay' sütununu çekiyoruz
       const { data, error } = await supabase
         .from('kampanya')
         .select(`
@@ -50,32 +47,56 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
   if (yukleniyor) return <div className="h-screen flex items-center justify-center font-black text-blue-600 animate-pulse">biKodVardı...</div>;
   if (!kampanya) return notFound();
 
-  // Dış Link Kontrolü
   const disLink = kampanya.link && kampanya.link !== "#" 
     ? (kampanya.link.startsWith('http') ? kampanya.link : `https://${kampanya.link}`)
     : null;
 
   const gun = kampanya.bitis_date ? Math.ceil((new Date(kampanya.bitis_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24)) : null;
 
+  // --- HAMLE 1: GOOGLE FAQ SCHEMA (Arka planda çalışır, Google arama sonuçlarında seni büyütür) ---
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": `${kampanya.baslik} ne zamana kadar geçerli?`,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": `Bu kampanya ${new Date(kampanya.bitis_date).toLocaleDateString('tr-TR')} tarihine kadar devam etmektedir.`
+        }
+      },
+      {
+        "@type": "Question",
+        "name": `${kampanya.yapan_marka_bilgisi?.marka_adi} kampanya kodunu nasıl kullanırım?`,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": `Kampanyaya Git butonunu kullanarak resmi sayfaya ulaşabilir ve detaylı katılım koşullarını inceleyebilirsiniz.`
+        }
+      }
+    ]
+  };
+
   return (
     <main className="min-h-screen bg-white font-['Inter'] pb-24">
+      {/* Schema Script */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
       
-      {/* ÜST REKLAM ALANI */}
       <div className="w-full bg-slate-50 border-b border-slate-100 py-4 text-center">
           <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">Sponsorlu İçerik Alanı</span>
       </div>
 
       <div className="max-w-4xl mx-auto px-6 pt-12">
-        {/* GERİ DÖNÜŞ */}
         <Link href="/" className="inline-flex items-center gap-2 mb-10 group no-underline">
-             <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">←</div>
-             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ana Sayfa</span>
+              <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">←</div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ana Sayfa</span>
         </Link>
 
-        {/* ANA KART */}
         <div className="bg-[#0D0F14] rounded-[3.5rem] overflow-hidden shadow-2xl relative border border-white/5">
           
-          {/* SAYAÇ */}
           {gun !== null && gun >= 0 && (
             <div className="absolute top-0 right-10 bg-blue-600 px-6 py-4 rounded-b-3xl flex flex-col items-center shadow-lg z-20">
                 <span className="text-white font-black text-3xl leading-none" style={{ fontFamily: 'Outfit' }}>{gun}</span>
@@ -84,8 +105,6 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
           )}
 
           <div className="p-10 md:p-14">
-              
-              {/* YAPAN MARKA */}
               <div className="inline-flex items-center gap-3 bg-white pl-2 pr-5 py-2 rounded-full mb-8">
                   <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center p-1.5 border border-slate-200">
                       {kampanya.yapan_marka_bilgisi?.logo_url ? (
@@ -99,20 +118,31 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
                   </span>
               </div>
 
-              {/* BAŞLIK */}
               <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-tight mb-8" style={{ fontFamily: 'Outfit' }}>
                   {kampanya.baslik}
               </h1>
 
-              {/* --- KRİTİK BÖLÜM: DETAY METNİ --- */}
-              {/* Artık 'kampanya.detay' kullanıyoruz ve stilini görseldeki gibi koruyoruz */}
               <div className="text-slate-300 text-lg leading-relaxed font-bold mb-10 whitespace-pre-wrap border-l-4 border-blue-600 pl-6 py-2">
                   {kampanya.detay || "Kampanya detayı bulunamadı."}
               </div>
 
-              {/* AKSİYON BUTONLARI */}
+              {/* --- HAMLE 2: SOSYAL KANIT BUTONLARI (Karanlık Mod Tasarımına Uygun) --- */}
+              <div className="bg-white/5 border border-white/10 rounded-3xl p-6 mb-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div>
+                    <h4 className="font-black text-white text-xs uppercase tracking-widest">Bu kampanya işine yaradı mı?</h4>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Sana yardımcı olduysa oyla!</p>
+                </div>
+                <div className="flex gap-3">
+                    <button className="px-6 py-3 bg-white/10 hover:bg-green-600 text-white rounded-2xl font-black text-xs transition-all flex items-center gap-2">
+                        👍 İŞE YARADI
+                    </button>
+                    <button className="px-6 py-3 bg-white/10 hover:bg-red-600 text-white rounded-2xl font-black text-xs transition-all flex items-center gap-2">
+                        👎 HATALI
+                    </button>
+                </div>
+              </div>
+
               <div className="flex flex-col md:flex-row gap-4 mt-8">
-                  {/* DIŞ LİNK BUTONU */}
                   {disLink ? (
                       <a 
                         href={disLink} 
@@ -129,15 +159,12 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
                       </div>
                   )}
 
-                  {/* PAYLAŞ BUTONU */}
                   <button onClick={shareWhatsApp} className="w-full md:w-auto px-8 py-6 bg-white/5 hover:bg-green-600 text-white rounded-[2rem] font-bold transition-all flex items-center justify-center gap-2">
                       <span>WhatsApp'ta Paylaş</span>
                   </button>
               </div>
-
           </div>
 
-          {/* ALT BİLGİ */}
           <div className="bg-black/40 border-t border-white/5 px-10 py-5 flex justify-between items-center">
               <span className="text-blue-500 font-bold text-[10px] uppercase tracking-widest">
                   Kategori: {kampanya.tur_bilgisi?.tur_adi || "Fırsat"}
@@ -148,7 +175,25 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
           </div>
         </div>
 
-        {/* REKLAM ALANI */}
+        {/* --- HAMLE 3: SSS BÖLÜMÜ (Google Metin Taraması İçin Kritik) --- */}
+        <div className="mt-16 space-y-4">
+            <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.3em] ml-2">Sıkça Sorulan Sorular</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                    <p className="font-black text-slate-900 text-xs uppercase mb-3 text-blue-600">Kampanya Bitiş Tarihi?</p>
+                    <p className="text-sm text-slate-500 font-bold leading-relaxed">
+                       Bu fırsat {new Date(kampanya.bitis_date).toLocaleDateString('tr-TR')} tarihine kadar tüm kullanıcılar için geçerlidir.
+                    </p>
+                </div>
+                <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                    <p className="font-black text-slate-900 text-xs uppercase mb-3 text-blue-600">Nasıl Kullanılır?</p>
+                    <p className="text-sm text-slate-500 font-bold leading-relaxed">
+                        Sayfadaki butona tıklayarak ilgili markanın resmi kampanya sayfasına gidip hemen faydalanabilirsiniz.
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <div className="w-full h-32 bg-slate-50 rounded-[2.5rem] mt-12 flex items-center justify-center border border-slate-100 border-dashed">
             <span className="text-[10px] text-slate-300 font-black uppercase tracking-[0.5em]">Reklam</span>
         </div>
