@@ -7,6 +7,7 @@ import Link from 'next/link';
 export default function Home() {
   const [sektorler, setSektorler] = useState<any[]>([]);
   const [populerMarkalar, setPopulerMarkalar] = useState<any[]>([]);
+  const [enYeniKampanyalar, setEnYeniKampanyalar] = useState<any[]>([]); // YENİ: Banner için
   const [yukleniyor, setYukleniyor] = useState(true);
   const [aramaTerimi, setAramaTerimi] = useState("");
   const [aramaSonuclari, setAramaSonuclari] = useState<any[]>([]);
@@ -20,15 +21,21 @@ export default function Home() {
 
     const veriGetir = async () => {
       setYukleniyor(true);
-      const [sRes, mRes, kRes] = await Promise.all([
+      // Promise.all içine yeni kampanyalar sorgusunu da ekledik
+      const [sRes, mRes, kRes, yeniKRes] = await Promise.all([
         supabase.from('sektor').select('*, gorsel_url'),
         supabase.from('marka').select('*'),
-        supabase.from('kampanya').select('id, fayd_marka, gecerli_sektor_id')
+        supabase.from('kampanya').select('id, fayd_marka, gecerli_sektor_id'),
+        supabase.from('kampanya')
+          .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url)')
+          .order('created_at', { ascending: false })
+          .limit(6) // En yeni 6 kampanya
       ]);
 
       const sData = sRes.data || [];
       const mData = mRes.data || [];
       const kData = kRes.data || [];
+      const yeniKData = yeniKRes.data || [];
 
       const benzersizKampanyalar = new Set();
       
@@ -52,10 +59,11 @@ export default function Home() {
       const markalarFirsatli = mData.map(m => ({
         ...m,
         firsatSayisi: kData.filter(k => String(k.fayd_marka) === String(m.id)).length
-      })).sort((a, b) => b.firsatSayisi - a.firsatSayisi).slice(0, 10);
+      })).sort((a, b) => b.firsatSayisi - a.firsatSayisi).slice(0, 12);
 
       setSektorler(siraliSektorler);
       setPopulerMarkalar(markalarFirsatli);
+      setEnYeniKampanyalar(yeniKData);
       setStats({ toplam: benzersizKampanyalar.size, aktif: benzersizKampanyalar.size });
       setYukleniyor(false);
     };
@@ -93,7 +101,6 @@ export default function Home() {
     <main className="min-h-screen bg-[#F8FAFC] font-['Plus_Jakarta_Sans'] text-slate-900 text-left">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      {/* --- ÜST BAR (SOSYAL BUTONLAR EKLENDİ) --- */}
       <nav className="sticky top-0 z-[60] bg-white/80 backdrop-blur-md border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex justify-between items-center text-left">
           <Link href="/" className="no-underline">
@@ -103,7 +110,7 @@ export default function Home() {
           </Link>
           <div className="flex gap-3">
              <a href="https://wa.me/channel/LINKIN" target="_blank" className="hidden md:flex items-center gap-2 text-sm font-bold text-green-600 bg-green-50 px-4 py-2 rounded-full hover:bg-green-100 transition no-underline border border-green-100">
-               WhatsApp
+                WhatsApp
              </a>
              <a href="https://t.me/bikodvardi" target="_blank" className="w-10 h-10 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition shadow-sm border border-blue-100 no-underline">
                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
@@ -148,20 +155,58 @@ export default function Home() {
           </div>
         </header>
 
+        {/* --- YENİ EKLENEN KAMPANYALAR (BANNER MODÜLÜ) --- */}
+        <section className="mb-14">
+            <div className="flex items-center justify-between mb-6 px-2">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Yeni Keşfedilen Fırsatlar</h3>
+                <div className="h-[1px] flex-1 bg-slate-200 mx-6 hidden md:block"></div>
+            </div>
+            <div className="flex gap-6 overflow-x-auto pb-6 no-scrollbar -mx-4 px-4">
+                {enYeniKampanyalar.map((k) => (
+                    <Link key={k.id} href={`/kampanya/${k.slug}`} className="flex-shrink-0 w-[300px] md:w-[350px] bg-slate-900 p-8 rounded-[3rem] relative overflow-hidden group no-underline transition-transform hover:-translate-y-2">
+                        <div className="relative z-10">
+                            <div className="flex justify-between items-start mb-6">
+                                <span className="bg-blue-600 text-[8px] font-black text-white px-3 py-1 rounded-full uppercase tracking-widest">YENİ</span>
+                                <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center p-2">
+                                    <img src={k.yapan_marka_bilgisi?.logo_url} alt="" className="max-h-full object-contain" />
+                                </div>
+                            </div>
+                            <h4 className="text-white font-black text-xl leading-tight mb-2 group-hover:text-blue-400 transition-colors h-14 overflow-hidden" style={{ fontFamily: 'Outfit' }}>
+                                {k.baslik}
+                            </h4>
+                            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                                {k.yapan_marka_bilgisi?.marka_adi}
+                            </p>
+                        </div>
+                        {/* Arka plan dekoratif logo */}
+                        <div className="absolute -right-6 -bottom-6 opacity-[0.03] group-hover:opacity-[0.08] transition-all">
+                            <img src={k.yapan_marka_bilgisi?.logo_url} className="w-40 h-40 object-contain rotate-12" />
+                        </div>
+                    </Link>
+                ))}
+            </div>
+        </section>
+
         {/* --- POPÜLER MARKALAR (KÜÇÜK VE ŞIK ETİKETLER) --- */}
-        <div className="max-w-4xl mx-auto mb-16">
-          <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+        <div className="max-w-7xl mx-auto mb-16">
+          <div className="flex items-center justify-between mb-6 px-2 text-center md:text-left">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 w-full md:w-auto">En Çok Kampanya Yapanlar</h3>
+                <div className="h-[1px] flex-1 bg-slate-200 ml-6 hidden md:block"></div>
+          </div>
+          <div className="flex flex-wrap justify-center md:justify-start gap-2 md:gap-3">
              {populerMarkalar.map((marka) => (
                 <Link 
                   key={marka.id} 
                   href={`/marka/${marka.slug}`}
-                  className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-2xl hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/5 transition-all no-underline group"
+                  className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2.5 rounded-2xl hover:border-blue-500 hover:shadow-xl hover:shadow-blue-500/5 transition-all no-underline group"
                 >
-                  <div className="w-5 h-5 bg-slate-50 rounded-md flex items-center justify-center text-[10px] font-black group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                  <div className="w-6 h-6 bg-slate-50 rounded-lg flex items-center justify-center text-[11px] font-black group-hover:bg-blue-600 group-hover:text-white transition-colors uppercase">
                     {marka.marka_adi[0]}
                   </div>
                   <span className="text-[12px] font-bold text-slate-700">{marka.marka_adi}</span>
-                  <span className="text-[9px] font-black text-blue-600 opacity-50">{marka.firsatSayisi}</span>
+                  <div className="w-5 h-5 bg-blue-50 rounded-full flex items-center justify-center">
+                     <span className="text-[9px] font-black text-blue-600">{marka.firsatSayisi}</span>
+                  </div>
                 </Link>
              ))}
           </div>
@@ -169,7 +214,7 @@ export default function Home() {
 
         {/* --- REKLAM ALANI 1 (ADSENSE) --- */}
         <div className="w-full h-24 bg-white/50 border border-slate-200 border-dashed rounded-3xl mb-16 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
-           REKLAM ALANI
+            REKLAM ALANI
         </div>
 
         {/* KATEGORİLER */}
@@ -200,7 +245,7 @@ export default function Home() {
 
         {/* --- REKLAM ALANI 2 (BÜYÜK) --- */}
         <div className="w-full h-48 bg-white/50 border border-slate-200 border-dashed rounded-[3.5rem] mt-24 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
-             SPONSORLU BAĞLANTI / REKLAM
+              SPONSORLU BAĞLANTI / REKLAM
         </div>
       </div>
 
@@ -238,22 +283,22 @@ export default function Home() {
       </footer>
  
       <footer className="mt-20 py-12 text-center border-t border-slate-100 bg-white/50">
-    <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.4em] mb-6">
-        bi<span className="text-blue-600">kod</span>vardı — 2026
-    </p>
-    
-    <div className="flex flex-wrap justify-center items-center gap-6 md:gap-12">
-      <Link href="/hakkimizda" className="text-[10px] font-black text-slate-500 hover:text-blue-600 uppercase tracking-widest no-underline transition-colors">
-        Hakkımızda
-      </Link>
-      <Link href="/gizlilik-politikasi" className="text-[10px] font-black text-slate-500 hover:text-blue-600 uppercase tracking-widest no-underline transition-colors">
-        Gizlilik Politikası
-      </Link>
-      <Link href="/iletisim" className="text-[10px] font-black text-slate-500 hover:text-blue-600 uppercase tracking-widest no-underline transition-colors">
-        İletişim
-      </Link>
-    </div>
-</footer>
+        <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.4em] mb-6">
+            bi<span className="text-blue-600">kod</span>vardı — 2026
+        </p>
+        
+        <div className="flex flex-wrap justify-center items-center gap-6 md:gap-12">
+          <Link href="/hakkimizda" className="text-[10px] font-black text-slate-500 hover:text-blue-600 uppercase tracking-widest no-underline transition-colors">
+            Hakkımızda
+          </Link>
+          <Link href="/gizlilik-politikasi" className="text-[10px] font-black text-slate-500 hover:text-blue-600 uppercase tracking-widest no-underline transition-colors">
+            Gizlilik Politikası
+          </Link>
+          <Link href="/iletisim" className="text-[10px] font-black text-slate-500 hover:text-blue-600 uppercase tracking-widest no-underline transition-colors">
+            İletişim
+          </Link>
+        </div>
+      </footer>
     </main>
   );
 }
