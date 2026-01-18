@@ -16,7 +16,7 @@ export default function KampanyaEkle() {
   // Form Verileri
   const [form, setForm] = useState({
     baslik: '',
-    detay: '',
+    detay: '', // Burası HTML kodunu tutacak
     link: '',
     bitis_date: '',
     yapan_marka: '',
@@ -38,68 +38,78 @@ export default function KampanyaEkle() {
     verileriGetir();
   }, []);
 
+  // --- SİHİRLİ YAPIŞTIRMA FONKSİYONU ---
+  const handleAkilliYapistir = (val: string) => {
+    // 1. Önce kutuya ne yapıştırıldıysa onu koy (kullanıcı görsün)
+    // Eğer JSON değilse, düz HTML yapıştırılmış demektir, bozmayalım.
+    let yeniForm = { ...form, detay: val };
+
+    try {
+        // 2. JSON mu diye kontrol et
+        // Gemini'den gelen temiz JSON'u parse etmeye çalışıyoruz
+        const json = JSON.parse(val);
+
+        if (json.html_kodu) {
+            // BINGO! Bu bir Gemini JSON paketi.
+            
+            // A) HTML'i ayıkla ve editöre koy
+            yeniForm.detay = json.html_kodu;
+            
+            // B) Başlığı doldur
+            if(json.baslik) yeniForm.baslik = json.baslik;
+            
+            // C) Tarihi doldur
+            if(json.son_tarih) yeniForm.bitis_date = json.son_tarih;
+
+            // D) Markayı Bul ve Seç (En kritik kısım)
+            if (json.marka && markalar.length > 0) {
+                // Veritabanındaki markalar içinde ara (Büyük/küçük harf duyarsız)
+                const gelenMarka = json.marka.toLowerCase().trim();
+                
+                const eslesen = markalar.find(m => 
+                    m.marka_adi.toLowerCase() === gelenMarka || 
+                    m.marka_adi.toLowerCase().includes(gelenMarka) ||
+                    gelenMarka.includes(m.marka_adi.toLowerCase())
+                );
+
+                if (eslesen) {
+                    yeniForm.yapan_marka = eslesen.id;
+                    // Küçük bir bildirim sesi veya efekti verilebilir buraya :)
+                }
+            }
+            
+            // Kullanıcıya bilgi ver
+            // alert("✨ Sihir Gerçekleşti: Form bilgileri otomatik dolduruldu!"); 
+            // (Alert kapatmakla uğraşma diye yorum satırına aldım, istersen açabilirsin)
+        }
+    } catch (e) {
+        // JSON değilse (örneğin sadece HTML yapıştırdıysa) hata verme, devam et.
+    }
+
+    setForm(yeniForm);
+  };
+
   const slugOlustur = (text: string) => {
-    return text
-      .toString()
-      .toLowerCase()
-      .replace(/ğ/g, 'g')
-      .replace(/ü/g, 'u')
-      .replace(/ş/g, 's')
-      .replace(/ı/g, 'i')
-      .replace(/ö/g, 'o')
-      .replace(/ç/g, 'c')
-      .replace(/\s+/g, '-')
-      .replace(/[^\w\-]+/g, '')
-      .replace(/\-\-+/g, '-')
-      .replace(/^-+/, '')
-      .replace(/-+$/, '');
+    return text.toString().toLowerCase()
+      .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
+      .replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
+      .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-')
+      .replace(/^-+/, '').replace(/-+$/, '');
   };
 
   const kaydet = async (e: React.FormEvent) => {
     e.preventDefault();
     setYukleniyor(true);
 
-    // --- 1. ADIM: GELİŞMİŞ MÜKERRER KONTROLÜ ---
-    
-    // A) LİNK KONTROLÜ
+    // Mükerrer Kontrolleri (Aynen korundu)
     if (form.link && form.link.trim() !== "") {
-        const { data: linkVarMi } = await supabase
-            .from('kampanya')
-            .select('id, baslik')
-            .eq('link', form.link.trim())
-            .maybeSingle();
-
-        if (linkVarMi) {
-            alert(`⚠️ BU LİNK ZATEN KAYITLI!\n\n"${linkVarMi.baslik}" isimli kampanya aynı linki kullanıyor.`);
-            setYukleniyor(false);
-            return;
-        }
+        const { data: linkVarMi } = await supabase.from('kampanya').select('id, baslik').eq('link', form.link.trim()).maybeSingle();
+        if (linkVarMi) { alert(`⚠️ BU LİNK ZATEN KAYITLI!\n"${linkVarMi.baslik}"`); setYukleniyor(false); return; }
     }
-
-    // B) MARKA İKİLİSİ KONTROLÜ
     if (form.yapan_marka && form.fayd_marka) {
-        const { data: markaIkiliVarMi } = await supabase
-            .from('kampanya')
-            .select('id, baslik')
-            .eq('yapan_marka', form.yapan_marka)
-            .eq('fayd_marka', form.fayd_marka)
-            .eq('bitis_date', form.bitis_date) // Aynı tarihli kampanya var mı?
-            .maybeSingle();
-            
-            // Not: .gt('bitis_date') yerine direkt çakışma kontrolü daha sağlıklı olabilir, 
-            // ama senin mantığını korudum.
-
-        if (markaIkiliVarMi) {
-            const onay = confirm(`📢 UYARI: Bu markalar için benzer bir kampanya var: \n"${markaIkiliVarMi.baslik}"\n\nYine de eklemek istiyor musunuz?`);
-            if (!onay) {
-                setYukleniyor(false);
-                return;
-            }
-        }
+        const { data: ikili } = await supabase.from('kampanya').select('id, baslik').eq('yapan_marka', form.yapan_marka).eq('fayd_marka', form.fayd_marka).eq('bitis_date', form.bitis_date).maybeSingle();
+        if (ikili) { if(!confirm(`⚠️ Benzer kampanya var: "${ikili.baslik}". Devam?`)) { setYukleniyor(false); return; } }
     }
-
-    // --- 2. ADIM: KAYIT İŞLEMİ ---
-    const yeniSlug = slugOlustur(form.baslik);
 
     const payload = {
         baslik: form.baslik,
@@ -110,72 +120,65 @@ export default function KampanyaEkle() {
         fayd_marka: form.fayd_marka || null,
         gecerli_sektor_id: form.gecerli_sektor_id || null,
         kampanya_turu: form.kampanya_turu,
-        slug: yeniSlug
+        slug: slugOlustur(form.baslik)
     };
 
     const { error } = await supabase.from('kampanya').insert([payload]);
 
-    if (error) {
-      alert('Hata oluştu: ' + error.message);
-      setYukleniyor(false);
-    } else {
-      alert('✅ Kampanya başarıyla oluşturuldu!');
-      router.push('/admin'); // Admin ana sayfasına veya listeye yönlendir
-    }
+    if (error) { alert('Hata: ' + error.message); setYukleniyor(false); } 
+    else { alert('✅ Yayınlandı!'); router.push('/admin'); }
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-10 px-6">
-      <div className="flex justify-between items-center mb-8">
+    <div className="max-w-7xl mx-auto py-10 px-6">
+      <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-black text-slate-900 tracking-tight" style={{ fontFamily: 'Outfit' }}>Yeni Kampanya</h2>
-        <button type="button" onClick={() => router.back()} className="text-sm font-bold text-slate-400 hover:text-slate-600">← İptal</button>
+        <button type="button" onClick={() => router.back()} className="text-sm font-bold text-slate-400 hover:text-slate-600">← Vazgeç</button>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         
-        {/* --- SOL TARA: FORM ALANI --- */}
+        {/* --- FORM ALANI --- */}
         <form onSubmit={kaydet} className="space-y-6">
             
             {/* BAŞLIK */}
             <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Başlık</label>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Başlık (Otomatik Dolar)</label>
                 <input 
-                  required
-                  type="text" 
-                  placeholder="Örn: Tüm Marketlerde %20 İndirim" 
-                  className="w-full bg-white border-2 border-slate-100 p-4 rounded-xl font-bold text-lg outline-none focus:border-blue-600 text-slate-900 shadow-sm"
+                  required type="text" 
+                  className="w-full bg-white border-2 border-slate-100 p-4 rounded-xl font-bold text-lg outline-none focus:border-blue-600 text-slate-900 transition-colors"
                   value={form.baslik}
                   onChange={(e) => setForm({...form, baslik: e.target.value})}
                 />
             </div>
 
-            {/* DETAY (HTML EDİTÖR GÖRÜNÜMÜ) */}
+            {/* SİHİRLİ EDİTÖR */}
             <div>
                 <div className="flex justify-between items-center mb-2">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        HTML İçerik (Gemini'den Yapıştır)
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-blue-600">
+                        ✨ SİHİRLİ ALAN (Gemini JSON'unu Buraya Yapıştır)
                     </label>
-                    <span className="text-[9px] bg-blue-100 text-blue-600 px-2 py-1 rounded font-bold">KOD MODU</span>
+                    <span className="text-[9px] bg-slate-100 text-slate-500 px-2 py-1 rounded font-bold">AKILLI PARSE</span>
                 </div>
                 <textarea 
-                  rows={10}
-                  placeholder="<div class='w-full...'>...</div>" 
-                  className="w-full bg-slate-900 text-green-400 border-2 border-slate-800 p-4 rounded-xl font-mono text-xs outline-none focus:border-blue-600 shadow-inner"
+                  rows={12}
+                  placeholder="{ 'baslik': '...', 'html_kodu': '...' }" 
+                  className="w-full bg-[#1e1e1e] text-green-400 border-2 border-slate-800 p-4 rounded-xl font-mono text-xs outline-none focus:border-blue-500 shadow-inner resize-none"
                   value={form.detay}
-                  onChange={(e) => setForm({...form, detay: e.target.value})}
+                  onChange={(e) => handleAkilliYapistir(e.target.value)} // <--- SİHİR BURADA
                 />
-                <p className="text-[10px] text-slate-400 mt-2">
-                    * Gemini "biKodVardı Editörü"nden aldığın HTML kodunu buraya direkt yapıştır.
+                <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
+                   💡 İpucu: Gemini'den aldığın JSON'u yapıştırınca Başlık, Tarih ve Marka kendiliğinden dolacak.
                 </p>
             </div>
 
-            {/* MARKALAR */}
+            {/* SEÇİMLER */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Yapan Marka</label>
                     <select 
                       required
-                      className="w-full bg-white border-2 border-slate-100 p-3 rounded-xl font-bold text-sm outline-none text-slate-900"
+                      className={`w-full border-2 p-3 rounded-xl font-bold text-sm outline-none transition-colors ${form.yapan_marka ? 'bg-blue-50 border-blue-200 text-blue-900' : 'bg-white border-slate-100 text-slate-900'}`}
                       value={form.yapan_marka}
                       onChange={(e) => setForm({...form, yapan_marka: e.target.value})}
                     >
@@ -196,7 +199,6 @@ export default function KampanyaEkle() {
                 </div>
             </div>
 
-            {/* DİĞER BİLGİLER */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Sektör</label>
@@ -210,7 +212,7 @@ export default function KampanyaEkle() {
                     </select>
                 </div>
                 <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Tür</label>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Kampanya Türü</label>
                     <select 
                       required
                       className="w-full bg-white border-2 border-slate-100 p-3 rounded-xl font-bold text-sm outline-none text-slate-900"
@@ -226,61 +228,52 @@ export default function KampanyaEkle() {
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Link</label>
-                    <input 
-                      type="text" 
-                      placeholder="https://..." 
-                      className="w-full bg-white border-2 border-slate-100 p-3 rounded-xl font-medium text-sm outline-none text-slate-900"
-                      value={form.link}
-                      onChange={(e) => setForm({...form, link: e.target.value})}
+                    <input type="text" placeholder="https://..." className="w-full bg-white border-2 border-slate-100 p-3 rounded-xl font-medium text-sm outline-none text-slate-900"
+                      value={form.link} onChange={(e) => setForm({...form, link: e.target.value})}
                     />
                 </div>
                 <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Son Tarih</label>
                     <input 
-                      required
-                      type="date" 
-                      className="w-full bg-white border-2 border-slate-100 p-3 rounded-xl font-medium text-sm outline-none text-slate-900"
-                      value={form.bitis_date}
+                      required type="date" 
+                      className={`w-full border-2 p-3 rounded-xl font-bold text-sm outline-none transition-colors ${form.bitis_date ? 'bg-blue-50 border-blue-200 text-blue-900' : 'bg-white border-slate-100 text-slate-900'}`}
+                      value={form.bitis_date} 
                       onChange={(e) => setForm({...form, bitis_date: e.target.value})}
                     />
                 </div>
             </div>
 
-            <button 
-              disabled={yukleniyor}
-              type="submit" 
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl text-lg font-black tracking-tight transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 mt-4"
+            <button disabled={yukleniyor} type="submit" 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl text-lg font-black tracking-tight transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 mt-6"
             >
-              {yukleniyor ? 'Kaydediliyor...' : 'Yayınla 🚀'}
+              {yukleniyor ? 'Kaydediliyor...' : 'Kampanyayı Yayınla 🚀'}
             </button>
         </form>
 
-        {/* --- SAĞ TARAF: CANLI ÖNİZLEME --- */}
-        <div className="hidden lg:block">
-            <div className="sticky top-10">
-                <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Canlı Önizleme</h3>
-                
-                {/* Sitenin ön yüzündeki Karanlık Tema Kartı */}
-                <div className="bg-[#0D0F14] rounded-[2.5rem] p-8 border border-slate-800 shadow-2xl">
-                    <div className="flex items-center gap-3 mb-6 opacity-70">
-                        <div className="w-8 h-8 rounded-full bg-slate-100"></div>
-                        <span className="text-white font-bold text-sm">MARKA ADI</span>
+        {/* --- CANLI ÖNİZLEME (Responsive) --- */}
+        <div className="hidden lg:block relative">
+            <div className="sticky top-6">
+                <div className="bg-[#0D0F14] rounded-[3rem] p-8 border border-white/5 shadow-2xl min-h-[600px]">
+                    {/* Marka & Başlık */}
+                    <div className="flex items-center gap-3 mb-8 opacity-90">
+                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center font-bold text-black text-xs">
+                             {form.yapan_marka ? markalar.find(m=>m.id==form.yapan_marka)?.marka_adi.charAt(0) : "M"}
+                        </div>
+                        <span className="text-white font-bold text-sm tracking-wide" style={{ fontFamily: 'Outfit' }}>
+                            {form.yapan_marka ? markalar.find(m=>m.id==form.yapan_marka)?.marka_adi : "MARKA SEÇİLMEDİ"}
+                        </span>
                     </div>
 
-                    <h1 className="text-2xl font-black text-white mb-6" style={{ fontFamily: 'Outfit' }}>
-                        {form.baslik || "Kampanya Başlığı Buraya Gelecek..."}
+                    <h1 className="text-3xl font-black text-white mb-8 leading-tight" style={{ fontFamily: 'Outfit' }}>
+                        {form.baslik || "Kampanya Başlığı..."}
                     </h1>
 
-                    {/* HTML İçerik Önizleme Alanı */}
+                    {/* HTML İÇERİK RENDER ALANI */}
                     <div 
                         className="prose prose-invert max-w-none text-slate-300 text-sm leading-relaxed whitespace-pre-wrap [&>div]:whitespace-normal"
-                        dangerouslySetInnerHTML={{ __html: form.detay || "<p class='opacity-30'>Gemini'den aldığın kodu yapıştırınca tablo burada görünecek...</p>" }}
+                        dangerouslySetInnerHTML={{ __html: form.detay && form.detay.trim().startsWith('{') ? "<p class='text-yellow-500'>⚠️ JSON kodu yapıştırıldı. Otomatik işleniyor...</p>" : (form.detay || "<p class='opacity-20'>İçerik bekleniyor...</p>") }}
                     />
-                    
-                    <div className="mt-6 flex gap-2 opacity-50">
-                        <div className="h-12 bg-white/10 rounded-xl flex-1"></div>
-                        <div className="h-12 bg-white/10 rounded-xl w-12"></div>
-                    </div>
+
                 </div>
             </div>
         </div>
