@@ -16,11 +16,11 @@ export default function KampanyaEkle() {
   // Form Verileri
   const [form, setForm] = useState({
     baslik: '',
-    detay: '', // HTML içeriği buraya gelecek
+    detay: '', // HTML Tablo kodu buraya gelecek
     link: '',
     bitis_date: '',
-    yapan_marka: '', // ID tutacak
-    fayd_marka: '',  // ID tutacak
+    yapan_marka: '', // ID
+    fayd_marka: '',  // ID
     gecerli_sektor_id: '',
     kampanya_turu: ''
   });
@@ -28,7 +28,7 @@ export default function KampanyaEkle() {
   // Sayfa açılınca verileri çek
   useEffect(() => {
     const verileriGetir = async () => {
-      const { data: mData } = await supabase.from('marka').select('id, marka_adi').order('marka_adi');
+      const { data: mData } = await supabase.from('marka').select('id, marka_adi, logo_url').order('marka_adi');
       const { data: sData } = await supabase.from('sektor').select('id, sektor_adi').order('sektor_adi');
       const { data: tData } = await supabase.from('kampanya_turu').select('id, tur_adi').order('tur_adi');
 
@@ -39,24 +39,36 @@ export default function KampanyaEkle() {
     verileriGetir();
   }, []);
 
-  // --- 🔥 SİHİRLİ YAPIŞTIRMA VE AYIKLAMA FONKSİYONU ---
+  // --- 🔥 GÜNCELLENMİŞ AKILLI YAPIŞTIRMA (Temizlikçili) ---
   const handleAkilliYapistir = (val: string) => {
-    // 1. Önce yapıştırılan metni kutuya koy (kullanıcı görsün)
+    // 1. Önce yapıştırılanı kutuya koy ki ne yapıştırdığını gör
+    // (Henüz parse etmedik)
     let yeniForm = { ...form, detay: val };
+    
+    // TEMİZLİK ZAMANI: Gemini'nin eklediği ```json ve ``` işaretlerini temizle
+    let temizVal = val.trim();
+    if (temizVal.startsWith('```json')) {
+        temizVal = temizVal.replace('```json', '');
+    } else if (temizVal.startsWith('```')) {
+        temizVal = temizVal.replace('```', '');
+    }
+    
+    if (temizVal.endsWith('```')) {
+        temizVal = temizVal.replace('```', ''); // Sondaki tırnakları sil
+    }
 
     try {
-        // 2. JSON mu diye kontrol et
-        const json = JSON.parse(val);
+        // 2. Artık temizlenen veriyi JSON'a çevirmeyi dene
+        const json = JSON.parse(temizVal);
 
-        // Eğer beklediğimiz formatta bir JSON ise işlemi başlat
         if (json.html_kodu) {
             
-            // A) HTML Kodu ve Başlık/Tarih
+            // A) HTML Kodunu ve Temel Bilgileri Al
             yeniForm.detay = json.html_kodu;
             if (json.baslik) yeniForm.baslik = json.baslik;
             if (json.son_tarih) yeniForm.bitis_date = json.son_tarih;
 
-            // B) Marka Arama Fonksiyonu (ID bulur)
+            // B) Marka ID Bulma Fonksiyonu
             const markaIdBul = (isim: string) => {
                 if (!isim || markalar.length === 0) return "";
                 const aranan = isim.toLowerCase().trim();
@@ -70,35 +82,31 @@ export default function KampanyaEkle() {
                 return eslesen ? eslesen.id : "";
             };
 
-            // C) Yapan Markayı Bul (Örn: Nays)
+            // C) Markaları Eşleştir
             if (json.yapan_marka) {
                 const id = markaIdBul(json.yapan_marka);
                 if (id) yeniForm.yapan_marka = id;
             }
 
-            // D) Faydalanılan Markayı Bul (Örn: Sigortam.net)
             if (json.faydalanilan_marka) {
                 const id = markaIdBul(json.faydalanilan_marka);
                 if (id) yeniForm.fayd_marka = id;
             }
         }
     } catch (e) {
-        // JSON değilse (sadece HTML veya düz yazıysa) hata verme, olduğu gibi kalsın.
+        // JSON değilse hiçbir şey yapma, kullanıcı belki elle düzeltiyordur.
+        // Hata vermiyoruz ki form bozulmasın.
     }
 
     setForm(yeniForm);
   };
 
-  // URL Slug Oluşturucu
   const slugOlustur = (text: string) => {
     return text.toString().toLowerCase()
-      .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
-      .replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
-      .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-')
-      .replace(/^-+/, '').replace(/-+$/, '');
+      .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
+      .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
   };
 
-  // Kaydetme İşlemi
   const kaydet = async (e: React.FormEvent) => {
     e.preventDefault();
     setYukleniyor(true);
@@ -114,10 +122,10 @@ export default function KampanyaEkle() {
         const { data: ikili } = await supabase.from('kampanya').select('id, baslik')
             .eq('yapan_marka', form.yapan_marka)
             .eq('fayd_marka', form.fayd_marka)
-            .gte('bitis_date', new Date().toISOString().split('T')[0]) // Sadece tarihi geçmemişleri kontrol et
+            .gte('bitis_date', new Date().toISOString().split('T')[0])
             .maybeSingle();
             
-        if (ikili) { if(!confirm(`⚠️ Bu iki marka arasında aktif bir kampanya var: "${ikili.baslik}". Yine de ekilsin mi?`)) { setYukleniyor(false); return; } }
+        if (ikili) { if(!confirm(`⚠️ Bu markalar arasında aktif kampanya var: "${ikili.baslik}". Devam?`)) { setYukleniyor(false); return; } }
     }
 
     const payload = {
@@ -140,97 +148,78 @@ export default function KampanyaEkle() {
 
   return (
     <div className="max-w-7xl mx-auto py-10 px-6">
-      
-      {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-black text-slate-900 tracking-tight" style={{ fontFamily: 'Outfit' }}>Yeni Kampanya</h2>
-        <button type="button" onClick={() => router.back()} className="text-sm font-bold text-slate-400 hover:text-slate-600">← Vazgeç</button>
+        <button type="button" onClick={() => router.back()} className="text-sm font-bold text-slate-400 hover:text-slate-600">← İptal</button>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         
-        {/* --- SOL TARA: FORM ALANI --- */}
+        {/* --- SOL: FORM ALANI --- */}
         <form onSubmit={kaydet} className="space-y-6">
             
             {/* BAŞLIK */}
             <div>
                 <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Başlık (Otomatik)</label>
-                <input 
-                  required type="text" 
-                  className="w-full bg-white border-2 border-slate-100 p-4 rounded-xl font-bold text-lg outline-none focus:border-blue-600 text-slate-900 transition-colors"
-                  value={form.baslik}
-                  onChange={(e) => setForm({...form, baslik: e.target.value})}
-                />
+                <input required type="text" className="w-full bg-white border-2 border-slate-100 p-4 rounded-xl font-bold text-lg outline-none focus:border-blue-600 text-slate-900 transition-colors"
+                  value={form.baslik} onChange={(e) => setForm({...form, baslik: e.target.value})} />
             </div>
 
-            {/* SİHİRLİ EDİTÖR KUTUSU */}
+            {/* JSON EDİTÖRÜ */}
             <div>
                 <div className="flex justify-between items-center mb-2">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-blue-600">
-                        ✨ GEMINI JSON ALANI (Buraya Yapıştır)
-                    </label>
-                    <span className="text-[9px] bg-slate-100 text-slate-500 px-2 py-1 rounded font-bold">AKILLI PARSE</span>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-blue-600">✨ GEMINI JSON ALANI</label>
+                    <span className="text-[9px] bg-slate-100 text-slate-500 px-2 py-1 rounded font-bold">OTOMATİK TEMİZLEYİCİ</span>
                 </div>
-                <textarea 
-                  rows={12}
-                  placeholder="{ 'baslik': '...', 'yapan_marka': '...', 'html_kodu': '...' }" 
+                {/* Textarea'ya yapıştırılan değeri handleAkilliYapistir fonksiyonuna gönderiyoruz */}
+                <textarea rows={12} placeholder="{ 'baslik': '...', 'yapan_marka': '...', 'html_kodu': '...' }" 
                   className="w-full bg-[#1e1e1e] text-green-400 border-2 border-slate-800 p-4 rounded-xl font-mono text-xs outline-none focus:border-blue-500 shadow-inner resize-none"
-                  value={form.detay}
+                  
+                  // Burası kritik: Value olarak form.detay'ı değil, geçici bir state'i veya 
+                  // kullanıcı parse edilmiş halini görsün istiyorsak direkt detay'ı gösteriyoruz.
+                  // Kullanıcı buraya yapıştırdığında 'handleAkilliYapistir' devreye giriyor.
+                  value={form.detay} 
                   onChange={(e) => handleAkilliYapistir(e.target.value)} 
                 />
-                <p className="text-[10px] text-slate-400 mt-2">
-                   💡 Gemini'den gelen JSON'u yapıştırınca; Başlık, Tarih ve Markalar (Yapan/Faydalanan) otomatik seçilecektir.
+                 <p className="text-[10px] text-slate-400 mt-2">
+                   💡 Gemini'nin verdiği kodun başında ```json yazsa bile direkt yapıştır, ben temizlerim.
                 </p>
             </div>
 
-            {/* MARKA SEÇİMLERİ (Otomatik Dolar) */}
+            {/* MARKA SEÇİMLERİ (Otomatik Seçilir) */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Yapan Marka</label>
-                    <select 
-                      required
-                      className={`w-full border-2 p-3 rounded-xl font-bold text-sm outline-none transition-colors ${form.yapan_marka ? 'bg-blue-50 border-blue-200 text-blue-900' : 'bg-white border-slate-100 text-slate-900'}`}
-                      value={form.yapan_marka}
-                      onChange={(e) => setForm({...form, yapan_marka: e.target.value})}
-                    >
+                    <select required className={`w-full border-2 p-3 rounded-xl font-bold text-sm outline-none transition-colors ${form.yapan_marka ? 'bg-blue-50 border-blue-200 text-blue-900' : 'bg-white border-slate-100 text-slate-900'}`}
+                      value={form.yapan_marka} onChange={(e) => setForm({...form, yapan_marka: e.target.value})}>
                         <option value="">Seçiniz...</option>
                         {markalar.map(m => <option key={m.id} value={m.id}>{m.marka_adi}</option>)}
                     </select>
                 </div>
                 <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Fayd. Marka</label>
-                    <select 
-                      className={`w-full border-2 p-3 rounded-xl font-bold text-sm outline-none transition-colors ${form.fayd_marka ? 'bg-blue-50 border-blue-200 text-blue-900' : 'bg-white border-slate-100 text-slate-900'}`}
-                      value={form.fayd_marka}
-                      onChange={(e) => setForm({...form, fayd_marka: e.target.value})}
-                    >
+                    <select className={`w-full border-2 p-3 rounded-xl font-bold text-sm outline-none transition-colors ${form.fayd_marka ? 'bg-blue-50 border-blue-200 text-blue-900' : 'bg-white border-slate-100 text-slate-900'}`}
+                      value={form.fayd_marka} onChange={(e) => setForm({...form, fayd_marka: e.target.value})}>
                         <option value="">Yok</option>
                         {markalar.map(m => <option key={m.id} value={m.id}>{m.marka_adi}</option>)}
                     </select>
                 </div>
             </div>
 
-            {/* DİĞER SEÇİMLER */}
+            {/* DİĞER BİLGİLER */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Sektör</label>
-                    <select 
-                      className="w-full bg-white border-2 border-slate-100 p-3 rounded-xl font-bold text-sm outline-none text-slate-900"
-                      value={form.gecerli_sektor_id}
-                      onChange={(e) => setForm({...form, gecerli_sektor_id: e.target.value})}
-                    >
+                    <select className="w-full bg-white border-2 border-slate-100 p-3 rounded-xl font-bold text-sm outline-none text-slate-900"
+                      value={form.gecerli_sektor_id} onChange={(e) => setForm({...form, gecerli_sektor_id: e.target.value})}>
                         <option value="">Genel</option>
                         {sektorler.map(s => <option key={s.id} value={s.id}>{s.sektor_adi}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Kampanya Türü</label>
-                    <select 
-                      required
-                      className="w-full bg-white border-2 border-slate-100 p-3 rounded-xl font-bold text-sm outline-none text-slate-900"
-                      value={form.kampanya_turu}
-                      onChange={(e) => setForm({...form, kampanya_turu: e.target.value})}
-                    >
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Tür</label>
+                    <select required className="w-full bg-white border-2 border-slate-100 p-3 rounded-xl font-bold text-sm outline-none text-slate-900"
+                      value={form.kampanya_turu} onChange={(e) => setForm({...form, kampanya_turu: e.target.value})}>
                         <option value="">Seçiniz...</option>
                         {turler.map(t => <option key={t.id} value={t.id}>{t.tur_adi}</option>)}
                     </select>
@@ -241,28 +230,21 @@ export default function KampanyaEkle() {
                 <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Link</label>
                     <input type="text" placeholder="https://..." className="w-full bg-white border-2 border-slate-100 p-3 rounded-xl font-medium text-sm outline-none text-slate-900"
-                      value={form.link} onChange={(e) => setForm({...form, link: e.target.value})}
-                    />
+                      value={form.link} onChange={(e) => setForm({...form, link: e.target.value})} />
                 </div>
                 <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Son Tarih</label>
-                    <input 
-                      required type="date" 
-                      className={`w-full border-2 p-3 rounded-xl font-bold text-sm outline-none transition-colors ${form.bitis_date ? 'bg-blue-50 border-blue-200 text-blue-900' : 'bg-white border-slate-100 text-slate-900'}`}
-                      value={form.bitis_date} 
-                      onChange={(e) => setForm({...form, bitis_date: e.target.value})}
-                    />
+                    <input required type="date" className={`w-full border-2 p-3 rounded-xl font-bold text-sm outline-none transition-colors ${form.bitis_date ? 'bg-blue-50 border-blue-200 text-blue-900' : 'bg-white border-slate-100 text-slate-900'}`}
+                      value={form.bitis_date} onChange={(e) => setForm({...form, bitis_date: e.target.value})} />
                 </div>
             </div>
 
-            <button disabled={yukleniyor} type="submit" 
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl text-lg font-black tracking-tight transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 mt-6"
-            >
+            <button disabled={yukleniyor} type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl text-lg font-black tracking-tight transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 mt-6">
               {yukleniyor ? 'Kaydediliyor...' : 'Yayınla 🚀'}
             </button>
         </form>
 
-        {/* --- SAĞ TARAF: CANLI ÖNİZLEME --- */}
+        {/* --- SAĞ: CANLI ÖNİZLEME (Responsive) --- */}
         <div className="hidden lg:block relative">
             <div className="sticky top-6">
                 <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Sitede Böyle Görünecek</h3>
@@ -271,10 +253,10 @@ export default function KampanyaEkle() {
                     {/* Marka & Başlık */}
                     <div className="flex items-center gap-3 mb-8 opacity-90">
                         <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center font-bold text-black text-xs border-2 border-blue-500 overflow-hidden">
-                             {/* Yapan markanın logosu (veya baş harfi) */}
+                             {/* Logo Gösterimi */}
                              {form.yapan_marka ? (
                                 markalar.find(m=>m.id==form.yapan_marka)?.logo_url ? 
-                                <img src={markalar.find(m=>m.id==form.yapan_marka)?.logo_url} className="w-full h-full object-contain" /> :
+                                <img src={markalar.find(m=>m.id==form.yapan_marka)?.logo_url} className="w-full h-full object-contain" alt="" /> :
                                 markalar.find(m=>m.id==form.yapan_marka)?.marka_adi.charAt(0)
                              ) : "M"}
                         </div>
@@ -297,7 +279,11 @@ export default function KampanyaEkle() {
                     {/* HTML İÇERİK RENDER ALANI */}
                     <div 
                         className="prose prose-invert max-w-none text-slate-300 text-sm leading-relaxed whitespace-pre-wrap [&>div]:whitespace-normal"
-                        dangerouslySetInnerHTML={{ __html: form.detay && form.detay.trim().startsWith('{') ? "<p class='text-yellow-500 font-mono text-xs'>⚠️ JSON yapıştırıldı. İşleniyor...</p>" : (form.detay || "<p class='opacity-20 text-xs'>Tablo önizlemesi burada belirecek...</p>") }}
+                        dangerouslySetInnerHTML={{ 
+                            __html: form.detay && (form.detay.trim().startsWith('{') || form.detay.trim().startsWith('```'))
+                            ? "<p class='text-yellow-500 font-mono text-xs'>⚠️ JSON işleniyor veya hatalı format...</p>" 
+                            : (form.detay || "<p class='opacity-20 text-xs'>Tablo önizlemesi burada belirecek...</p>") 
+                        }}
                     />
 
                 </div>
