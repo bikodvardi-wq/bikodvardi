@@ -1,52 +1,59 @@
 import { supabase } from '@/lib/supabase';
 
-// Bu satır sayesinde sitemap her zaman en güncel veriyi çeker, bayatlamaz.
-export const revalidate = 0; 
+// Statik cache'i tamamen kapatıyoruz ki her saniye güncel olsun
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function sitemap() {
   const baseUrl = 'https://bikodvardi.com';
 
-  // --- 1. KAMPANYALARI ÇEK (Google'ın asıl görmesi gereken yer) ---
-  const { data: kampanyalar } = await supabase
-    .from('kampanya')
-    .select('slug, created_at')
-    .order('created_at', { ascending: false });
+  try {
+    // 1. KAMPANYALARI ÇEK
+    // Not: Tablo adının 'kampanya' olduğundan emin ol (Admin panelinde öyleydi)
+    const { data: kampanyalar } = await supabase
+      .from('kampanya')
+      .select('slug, created_at');
 
-  const kampanyaUrls = kampanyalar?.map((k) => ({
-    url: `${baseUrl}/kampanya/${k.slug}`,
-    lastModified: k.created_at ? new Date(k.created_at) : new Date(),
-    changeFrequency: 'daily', // Kampanyalar her gün kontrol edilsin
-    priority: 1.0,           // En yüksek öncelik
-  })) || [];
+    const kampanyaUrls = kampanyalar?.map((k) => ({
+      url: `${baseUrl}/kampanya/${k.slug}`,
+      lastModified: k.created_at ? new Date(k.created_at) : new Date(),
+      changeFrequency: 'daily' as const,
+      priority: 1.0,
+    })) || [];
 
-  // --- 2. SEKTÖRLERİ ÇEK ---
-  const { data: sektorler } = await supabase.from('sektor').select('slug');
-  const sektorUrls = sektorler?.map((s) => ({
-    url: `${baseUrl}/sektor/${s.slug}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly',
-    priority: 0.8,
-  })) || [];
+    // 2. SEKTÖRLERİ ÇEK
+    const { data: sektorler } = await supabase.from('sektor').select('slug');
+    const sektorUrls = sektorler?.map((s) => ({
+      url: `${baseUrl}/sektor/${s.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    })) || [];
 
-  // --- 3. MARKALARI ÇEK ---
-  const { data: markalar } = await supabase.from('marka').select('slug');
-  const markaUrls = markalar?.map((m) => ({
-    url: `${baseUrl}/marka/${m.slug}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly',
-    priority: 0.8,
-  })) || [];
+    // 3. MARKALARI ÇEK
+    const { data: markalar } = await supabase.from('marka').select('slug');
+    const markaUrls = markalar?.map((m) => ({
+      url: `${baseUrl}/marka/${m.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    })) || [];
 
-  // --- 4. TÜM LİNKLERİ BİRLEŞTİR VE GOOGLE'A SUN ---
-  return [
-    { 
-      url: baseUrl, 
-      lastModified: new Date(), 
-      changeFrequency: 'always', 
-      priority: 1.0 
-    },
-    ...kampanyaUrls,
-    ...sektorUrls,
-    ...markaUrls,
-  ];
+    // 4. ANA SAYFA VE TÜM LİNKLERİ BİRLEŞTİR
+    return [
+      {
+        url: baseUrl,
+        lastModified: new Date(),
+        changeFrequency: 'always' as const,
+        priority: 1.0,
+      },
+      ...kampanyaUrls,
+      ...sektorUrls,
+      ...markaUrls,
+    ];
+  } catch (error) {
+    console.error('Sitemap üretilirken hata oluştu:', error);
+    // Hata durumunda en azından ana sayfayı döndür ki sitemap tamamen kırılmasın
+    return [{ url: baseUrl, lastModified: new Date() }];
+  }
 }
