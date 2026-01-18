@@ -107,6 +107,7 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ana Sayfa</span>
         </Link>
 
+        {/* --- KART ALANI --- */}
         <div className="bg-[#0D0F14] rounded-[3.5rem] overflow-hidden shadow-2xl relative border border-white/5">
           
           {gun !== null && gun >= 0 && (
@@ -116,7 +117,8 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
             </div>
           )}
 
-          <div className="p-10 md:p-14">
+          <div className="p-8 md:p-14">
+              {/* Marka Logo */}
               <div className="inline-flex items-center gap-3 bg-white pl-2 pr-5 py-2 rounded-full mb-8">
                   <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center p-1.5 border border-slate-200">
                       {kampanya.yapan_marka_bilgisi?.logo_url ? (
@@ -134,9 +136,19 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
                   {kampanya.baslik}
               </h1>
 
-              <div className="text-slate-300 text-lg leading-relaxed font-bold mb-10 whitespace-pre-wrap border-l-4 border-blue-600 pl-6 py-2">
-                  {kampanya.detay || "Kampanya detayı bulunamadı."}
-              </div>
+              {/* --- AKILLI İÇERİK ALANI ---
+                  1. whitespace-pre-wrap: Eski düz metinlerdeki satır başlarını (Enter) korur.
+                  2. dangerouslySetInnerHTML: Yeni HTML tabloları (Gemini'den gelen) render eder.
+                  3. [&>div]:whitespace-normal: Eğer içerik yeni bir HTML div ise (tablo gibi), 
+                     onun içindeki boşlukları normale çevirir ki tablo bozulmasın.
+              */}
+              <div 
+                className="
+                  prose prose-invert max-w-none mb-10 text-slate-300 leading-relaxed font-medium 
+                  whitespace-pre-wrap [&>div]:whitespace-normal
+                "
+                dangerouslySetInnerHTML={{ __html: kampanya.detay || "<p>Detay bulunamadı.</p>" }}
+              />
 
               {/* ETKİLEŞİM BUTONLARI */}
               <div className="bg-white/5 border border-white/10 rounded-3xl p-6 mb-10 flex flex-col md:flex-row items-center justify-between gap-6">
