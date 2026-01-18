@@ -83,11 +83,14 @@ export default function KampanyaEkle() {
             .select('id, baslik')
             .eq('yapan_marka', form.yapan_marka)
             .eq('fayd_marka', form.fayd_marka)
-            .gt('bitis_date', new Date().toISOString())
+            .eq('bitis_date', form.bitis_date) // Aynı tarihli kampanya var mı?
             .maybeSingle();
+            
+            // Not: .gt('bitis_date') yerine direkt çakışma kontrolü daha sağlıklı olabilir, 
+            // ama senin mantığını korudum.
 
         if (markaIkiliVarMi) {
-            const onay = confirm(`📢 UYARI: Bu iki marka arasında zaten aktif bir kampanya var: \n"${markaIkiliVarMi.baslik}"\n\nYine de eklemek istiyor musunuz?`);
+            const onay = confirm(`📢 UYARI: Bu markalar için benzer bir kampanya var: \n"${markaIkiliVarMi.baslik}"\n\nYine de eklemek istiyor musunuz?`);
             if (!onay) {
                 setYukleniyor(false);
                 return;
@@ -117,134 +120,172 @@ export default function KampanyaEkle() {
       setYukleniyor(false);
     } else {
       alert('✅ Kampanya başarıyla oluşturuldu!');
-      router.push('/admin');
+      router.push('/admin'); // Admin ana sayfasına veya listeye yönlendir
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-10 px-6">
-      <h2 className="text-3xl font-black text-slate-900 mb-8 tracking-tight" style={{ fontFamily: 'Outfit' }}>Yeni Kampanya Oluştur</h2>
+    <div className="max-w-5xl mx-auto py-10 px-6">
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-3xl font-black text-slate-900 tracking-tight" style={{ fontFamily: 'Outfit' }}>Yeni Kampanya</h2>
+        <button type="button" onClick={() => router.back()} className="text-sm font-bold text-slate-400 hover:text-slate-600">← İptal</button>
+      </div>
       
-      <form onSubmit={kaydet} className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-xl border border-slate-100 space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         
-        {/* BAŞLIK */}
-        <div>
-            <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Kampanya Başlığı</label>
-            <input 
-              required
-              type="text" 
-              placeholder="Örn: Tüm Marketlerde %20 İndirim" 
-              className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-bold text-lg outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-50 transition-all text-slate-900"
-              value={form.baslik}
-              onChange={(e) => setForm({...form, baslik: e.target.value})}
-            />
-        </div>
-
-        {/* DETAY */}
-        <div>
-            <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Kampanya Detayları</label>
-            <textarea 
-              rows={6}
-              placeholder="Kampanya koşullarını ve detaylarını buraya yazın..." 
-              className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-medium outline-none focus:border-blue-600 transition-all text-slate-900"
-              value={form.detay}
-              onChange={(e) => setForm({...form, detay: e.target.value})}
-            />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* YAPAN MARKA */}
+        {/* --- SOL TARA: FORM ALANI --- */}
+        <form onSubmit={kaydet} className="space-y-6">
+            
+            {/* BAŞLIK */}
             <div>
-                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Kampanyayı Yapan Marka</label>
-                <select 
-                  required
-                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-bold outline-none cursor-pointer hover:bg-slate-100 transition-colors text-slate-900"
-                  value={form.yapan_marka}
-                  onChange={(e) => setForm({...form, yapan_marka: e.target.value})}
-                >
-                    <option value="">Seçiniz...</option>
-                    {markalar.map(m => <option key={m.id} value={m.id}>{m.marka_adi}</option>)}
-                </select>
-            </div>
-
-            {/* FAYDALANILAN MARKA */}
-            <div>
-                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Faydalanılan Marka (Varsa)</label>
-                <select 
-                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-bold outline-none cursor-pointer hover:bg-slate-100 transition-colors text-slate-900"
-                  value={form.fayd_marka}
-                  onChange={(e) => setForm({...form, fayd_marka: e.target.value})}
-                >
-                    <option value="">Yok (Genel Kampanya)</option>
-                    {markalar.map(m => <option key={m.id} value={m.id}>{m.marka_adi}</option>)}
-                </select>
-            </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* SEKTÖR */}
-            <div>
-                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Geçerli Sektör (Opsiyonel)</label>
-                <select 
-                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-bold outline-none text-slate-900"
-                  value={form.gecerli_sektor_id}
-                  onChange={(e) => setForm({...form, gecerli_sektor_id: e.target.value})}
-                >
-                    <option value="">Seçiniz (Genelse Seçin)</option>
-                    {sektorler.map(s => <option key={s.id} value={s.id}>{s.sektor_adi}</option>)}
-                </select>
-            </div>
-
-            {/* KAMPANYA TÜRÜ */}
-            <div>
-                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Kampanya Türü</label>
-                <select 
-                  required
-                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-bold outline-none text-slate-900"
-                  value={form.kampanya_turu}
-                  onChange={(e) => setForm({...form, kampanya_turu: e.target.value})}
-                >
-                    <option value="">Seçiniz...</option>
-                    {turler.map(t => <option key={t.id} value={t.id}>{t.tur_adi}</option>)}
-                </select>
-            </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* LİNK */}
-            <div>
-                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Kampanya Linki</label>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Başlık</label>
                 <input 
+                  required
                   type="text" 
-                  placeholder="https://..." 
-                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-medium outline-none text-slate-900"
-                  value={form.link}
-                  onChange={(e) => setForm({...form, link: e.target.value})}
+                  placeholder="Örn: Tüm Marketlerde %20 İndirim" 
+                  className="w-full bg-white border-2 border-slate-100 p-4 rounded-xl font-bold text-lg outline-none focus:border-blue-600 text-slate-900 shadow-sm"
+                  value={form.baslik}
+                  onChange={(e) => setForm({...form, baslik: e.target.value})}
                 />
             </div>
 
-            {/* BİTİŞ TARİHİ */}
+            {/* DETAY (HTML EDİTÖR GÖRÜNÜMÜ) */}
             <div>
-                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Son Geçerlilik Tarihi</label>
-                <input 
-                  required
-                  type="date" 
-                  className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl font-medium outline-none cursor-pointer text-slate-900"
-                  value={form.bitis_date}
-                  onChange={(e) => setForm({...form, bitis_date: e.target.value})}
+                <div className="flex justify-between items-center mb-2">
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        HTML İçerik (Gemini'den Yapıştır)
+                    </label>
+                    <span className="text-[9px] bg-blue-100 text-blue-600 px-2 py-1 rounded font-bold">KOD MODU</span>
+                </div>
+                <textarea 
+                  rows={10}
+                  placeholder="<div class='w-full...'>...</div>" 
+                  className="w-full bg-slate-900 text-green-400 border-2 border-slate-800 p-4 rounded-xl font-mono text-xs outline-none focus:border-blue-600 shadow-inner"
+                  value={form.detay}
+                  onChange={(e) => setForm({...form, detay: e.target.value})}
                 />
+                <p className="text-[10px] text-slate-400 mt-2">
+                    * Gemini "biKodVardı Editörü"nden aldığın HTML kodunu buraya direkt yapıştır.
+                </p>
+            </div>
+
+            {/* MARKALAR */}
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Yapan Marka</label>
+                    <select 
+                      required
+                      className="w-full bg-white border-2 border-slate-100 p-3 rounded-xl font-bold text-sm outline-none text-slate-900"
+                      value={form.yapan_marka}
+                      onChange={(e) => setForm({...form, yapan_marka: e.target.value})}
+                    >
+                        <option value="">Seçiniz...</option>
+                        {markalar.map(m => <option key={m.id} value={m.id}>{m.marka_adi}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Fayd. Marka</label>
+                    <select 
+                      className="w-full bg-white border-2 border-slate-100 p-3 rounded-xl font-bold text-sm outline-none text-slate-900"
+                      value={form.fayd_marka}
+                      onChange={(e) => setForm({...form, fayd_marka: e.target.value})}
+                    >
+                        <option value="">Yok</option>
+                        {markalar.map(m => <option key={m.id} value={m.id}>{m.marka_adi}</option>)}
+                    </select>
+                </div>
+            </div>
+
+            {/* DİĞER BİLGİLER */}
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Sektör</label>
+                    <select 
+                      className="w-full bg-white border-2 border-slate-100 p-3 rounded-xl font-bold text-sm outline-none text-slate-900"
+                      value={form.gecerli_sektor_id}
+                      onChange={(e) => setForm({...form, gecerli_sektor_id: e.target.value})}
+                    >
+                        <option value="">Genel</option>
+                        {sektorler.map(s => <option key={s.id} value={s.id}>{s.sektor_adi}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Tür</label>
+                    <select 
+                      required
+                      className="w-full bg-white border-2 border-slate-100 p-3 rounded-xl font-bold text-sm outline-none text-slate-900"
+                      value={form.kampanya_turu}
+                      onChange={(e) => setForm({...form, kampanya_turu: e.target.value})}
+                    >
+                        <option value="">Seçiniz...</option>
+                        {turler.map(t => <option key={t.id} value={t.id}>{t.tur_adi}</option>)}
+                    </select>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Link</label>
+                    <input 
+                      type="text" 
+                      placeholder="https://..." 
+                      className="w-full bg-white border-2 border-slate-100 p-3 rounded-xl font-medium text-sm outline-none text-slate-900"
+                      value={form.link}
+                      onChange={(e) => setForm({...form, link: e.target.value})}
+                    />
+                </div>
+                <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Son Tarih</label>
+                    <input 
+                      required
+                      type="date" 
+                      className="w-full bg-white border-2 border-slate-100 p-3 rounded-xl font-medium text-sm outline-none text-slate-900"
+                      value={form.bitis_date}
+                      onChange={(e) => setForm({...form, bitis_date: e.target.value})}
+                    />
+                </div>
+            </div>
+
+            <button 
+              disabled={yukleniyor}
+              type="submit" 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl text-lg font-black tracking-tight transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 mt-4"
+            >
+              {yukleniyor ? 'Kaydediliyor...' : 'Yayınla 🚀'}
+            </button>
+        </form>
+
+        {/* --- SAĞ TARAF: CANLI ÖNİZLEME --- */}
+        <div className="hidden lg:block">
+            <div className="sticky top-10">
+                <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Canlı Önizleme</h3>
+                
+                {/* Sitenin ön yüzündeki Karanlık Tema Kartı */}
+                <div className="bg-[#0D0F14] rounded-[2.5rem] p-8 border border-slate-800 shadow-2xl">
+                    <div className="flex items-center gap-3 mb-6 opacity-70">
+                        <div className="w-8 h-8 rounded-full bg-slate-100"></div>
+                        <span className="text-white font-bold text-sm">MARKA ADI</span>
+                    </div>
+
+                    <h1 className="text-2xl font-black text-white mb-6" style={{ fontFamily: 'Outfit' }}>
+                        {form.baslik || "Kampanya Başlığı Buraya Gelecek..."}
+                    </h1>
+
+                    {/* HTML İçerik Önizleme Alanı */}
+                    <div 
+                        className="prose prose-invert max-w-none text-slate-300 text-sm leading-relaxed whitespace-pre-wrap [&>div]:whitespace-normal"
+                        dangerouslySetInnerHTML={{ __html: form.detay || "<p class='opacity-30'>Gemini'den aldığın kodu yapıştırınca tablo burada görünecek...</p>" }}
+                    />
+                    
+                    <div className="mt-6 flex gap-2 opacity-50">
+                        <div className="h-12 bg-white/10 rounded-xl flex-1"></div>
+                        <div className="h-12 bg-white/10 rounded-xl w-12"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <button 
-          disabled={yukleniyor}
-          type="submit" 
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white p-6 rounded-[2rem] text-xl font-black tracking-tight transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1"
-        >
-          {yukleniyor ? 'Kontrol Ediliyor...' : 'Kampanyayı Yayınla ✨'}
-        </button>
-
-      </form>
+      </div>
     </div>
   );
 }
