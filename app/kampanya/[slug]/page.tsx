@@ -8,11 +8,11 @@ import Link from 'next/link';
 export default function KampanyaDetay({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = use(params);
   const [kampanya, setKampanya] = useState<any>(null);
+  const [benzerler, setBenzerler] = useState<any[]>([]); // Benzer kampanyalar için state
   const [yukleniyor, setYukleniyor] = useState(true);
   const [oyVerildi, setOyVerildi] = useState(false);
 
   useEffect(() => {
-    // Fontları yükle
     const fontLink = document.createElement('link');
     fontLink.href = 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&family=Inter:wght@400;700&display=swap';
     fontLink.rel = 'stylesheet';
@@ -34,29 +34,35 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
         setYukleniyor(false); 
         return; 
       }
+      
       setKampanya(data);
+
+      // --- BENZER KAMPANYALARI GETİR ---
+      // Aynı kategorideki (kampanya_turu) diğer son 3 kampanyayı çekiyoruz
+      const { data: benzerVeri } = await supabase
+        .from('kampanya')
+        .select('id, baslik, slug, yapan_marka_bilgisi:yapan_marka(logo_url, marka_adi)')
+        .eq('kampanya_turu', data.kampanya_turu)
+        .neq('id', data.id) // Şu anki kampanyayı listeden çıkar
+        .limit(3)
+        .order('created_at', { ascending: false });
+
+      if (benzerVeri) setBenzerler(benzerVeri);
+      
       setYukleniyor(false);
     };
+
     veriGetir();
   }, [resolvedParams.slug]);
 
-  // --- ETKİLEŞİM FONKSİYONU ---
   const oyVer = async (tip: 'ise_yaradi_count' | 'hatali_count') => {
     if (oyVerildi) return;
-
     const suankiSayi = kampanya[tip] || 0;
     const yeniSayi = suankiSayi + 1;
-    
-    const { error } = await supabase
-      .from('kampanya')
-      .update({ [tip]: yeniSayi })
-      .eq('id', kampanya.id);
-
+    const { error } = await supabase.from('kampanya').update({ [tip]: yeniSayi }).eq('id', kampanya.id);
     if (!error) {
       setKampanya({ ...kampanya, [tip]: yeniSayi });
       setOyVerildi(true);
-    } else {
-      console.error("Hata:", error.message);
     }
   };
 
@@ -69,13 +75,9 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
   if (yukleniyor) return <div className="h-screen flex items-center justify-center font-black text-blue-600 animate-pulse">biKodVardı...</div>;
   if (!kampanya) return notFound();
 
-  const disLink = kampanya.link && kampanya.link !== "#" 
-    ? (kampanya.link.startsWith('http') ? kampanya.link : `https://${kampanya.link}`)
-    : null;
-
+  const disLink = kampanya.link && kampanya.link !== "#" ? (kampanya.link.startsWith('http') ? kampanya.link : `https://${kampanya.link}`) : null;
   const gun = kampanya.bitis_date ? Math.ceil((new Date(kampanya.bitis_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24)) : null;
 
-  // GOOGLE FAQ SCHEMA
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -107,9 +109,7 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ana Sayfa</span>
         </Link>
 
-        {/* --- KART ALANI --- */}
         <div className="bg-[#0D0F14] rounded-[3.5rem] overflow-hidden shadow-2xl relative border border-white/5">
-          
           {gun !== null && gun >= 0 && (
             <div className="absolute top-0 right-10 bg-blue-600 px-6 py-4 rounded-b-3xl flex flex-col items-center shadow-lg z-20">
                 <span className="text-white font-black text-3xl leading-none" style={{ fontFamily: 'Outfit' }}>{gun}</span>
@@ -118,7 +118,6 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
           )}
 
           <div className="p-8 md:p-14">
-              {/* Marka Logo */}
               <div className="inline-flex items-center gap-3 bg-white pl-2 pr-5 py-2 rounded-full mb-8">
                   <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center p-1.5 border border-slate-200">
                       {kampanya.yapan_marka_bilgisi?.logo_url ? (
@@ -136,21 +135,11 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
                   {kampanya.baslik}
               </h1>
 
-              {/* --- AKILLI İÇERİK ALANI ---
-                  1. whitespace-pre-wrap: Eski düz metinlerdeki satır başlarını (Enter) korur.
-                  2. dangerouslySetInnerHTML: Yeni HTML tabloları (Gemini'den gelen) render eder.
-                  3. [&>div]:whitespace-normal: Eğer içerik yeni bir HTML div ise (tablo gibi), 
-                     onun içindeki boşlukları normale çevirir ki tablo bozulmasın.
-              */}
               <div 
-                className="
-                  prose prose-invert max-w-none mb-10 text-slate-300 leading-relaxed font-medium 
-                  whitespace-pre-wrap [&>div]:whitespace-normal
-                "
+                className="prose prose-invert max-w-none mb-10 text-slate-300 leading-relaxed font-medium whitespace-pre-wrap [&>div]:whitespace-normal"
                 dangerouslySetInnerHTML={{ __html: kampanya.detay || "<p>Detay bulunamadı.</p>" }}
               />
 
-              {/* ETKİLEŞİM BUTONLARI */}
               <div className="bg-white/5 border border-white/10 rounded-3xl p-6 mb-10 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div>
                     <h4 className="font-black text-white text-xs uppercase tracking-widest">Bu kampanya işine yaradı mı?</h4>
@@ -159,18 +148,10 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
                     </p>
                 </div>
                 <div className="flex gap-3">
-                    <button 
-                      onClick={() => oyVer('ise_yaradi_count')}
-                      disabled={oyVerildi}
-                      className={`px-6 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-2 ${oyVerildi ? 'bg-green-600 text-white opacity-50' : 'bg-white/10 hover:bg-green-600 text-white'}`}
-                    >
+                    <button onClick={() => oyVer('ise_yaradi_count')} disabled={oyVerildi} className={`px-6 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-2 ${oyVerildi ? 'bg-green-600 text-white opacity-50' : 'bg-white/10 hover:bg-green-600 text-white'}`}>
                         👍 {kampanya.ise_yaradi_count || 0}
                     </button>
-                    <button 
-                      onClick={() => oyVer('hatali_count')}
-                      disabled={oyVerildi}
-                      className={`px-6 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-2 ${oyVerildi ? 'bg-red-600 text-white opacity-50' : 'bg-white/10 hover:bg-red-600 text-white'}`}
-                    >
+                    <button onClick={() => oyVer('hatali_count')} disabled={oyVerildi} className={`px-6 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-2 ${oyVerildi ? 'bg-red-600 text-white opacity-50' : 'bg-white/10 hover:bg-red-600 text-white'}`}>
                         👎 {kampanya.hatali_count || 0}
                     </button>
                 </div>
@@ -179,15 +160,13 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
               <div className="flex flex-col md:flex-row gap-4 mt-8">
                   {disLink ? (
                       <a href={disLink} target="_blank" rel="noopener noreferrer" className="flex-1 py-6 bg-white hover:bg-blue-600 hover:text-white text-black text-xl font-black rounded-[2rem] flex items-center justify-center gap-2 transition-all shadow-xl no-underline group">
-                          MARKANIN SAYFASINA GİT
-                          <span className="text-sm opacity-50 group-hover:translate-x-1 transition-transform">↗</span>
+                          MARKANIN SAYFASINA GİT <span className="text-sm opacity-50 group-hover:translate-x-1 transition-transform">↗</span>
                       </a>
                   ) : (
                       <div className="flex-1 py-6 bg-white/10 text-white/40 text-sm font-bold rounded-[2rem] flex items-center justify-center uppercase tracking-widest cursor-not-allowed border border-white/5">
                           LİNK MEVCUT DEĞİL
                       </div>
                   )}
-
                   <button onClick={shareWhatsApp} className="w-full md:w-auto px-8 py-6 bg-white/5 hover:bg-green-600 text-white rounded-[2rem] font-bold transition-all flex items-center justify-center gap-2">
                       <span>WhatsApp</span>
                   </button>
@@ -198,11 +177,28 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
               <span className="text-blue-500 font-bold text-[10px] uppercase tracking-widest">
                   Kategori: {kampanya.tur_bilgisi?.tur_adi || "Fırsat"}
               </span>
-              <span className="text-white/20 font-bold text-[9px] uppercase tracking-widest">
-                  biKodVardı
-              </span>
+              <span className="text-white/20 font-bold text-[9px] uppercase tracking-widest">biKodVardı</span>
           </div>
         </div>
+
+        {/* --- YENİ: BENZER KAMPANYALAR BÖLÜMÜ --- */}
+        {benzerler.length > 0 && (
+          <div className="mt-16 mb-8">
+            <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.3em] ml-2 mb-6">İlgini Çekebilecek Diğer Fırsatlar</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {benzerler.map((bk) => (
+                <Link key={bk.id} href={`/kampanya/${bk.slug}`} className="group bg-slate-50 border border-slate-100 p-6 rounded-[2.5rem] hover:bg-white hover:shadow-xl transition-all no-underline">
+                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center p-1.5 mb-4 border border-slate-200">
+                    <img src={bk.yapan_marka_bilgisi?.logo_url} className="w-full h-full object-contain" alt="" />
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-800 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
+                    {bk.baslik}
+                  </h4>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* SSS BÖLÜMÜ */}
         <div className="mt-16 space-y-4">
