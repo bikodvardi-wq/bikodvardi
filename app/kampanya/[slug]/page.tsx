@@ -8,7 +8,7 @@ import Link from 'next/link';
 export default function KampanyaDetay({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = use(params);
   const [kampanya, setKampanya] = useState<any>(null);
-  const [benzerler, setBenzerler] = useState<any[]>([]); // Benzer kampanyalar için state
+  const [benzerler, setBenzerler] = useState<any[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [oyVerildi, setOyVerildi] = useState(false);
 
@@ -37,13 +37,11 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
       
       setKampanya(data);
 
-      // --- BENZER KAMPANYALARI GETİR ---
-      // Aynı kategorideki (kampanya_turu) diğer son 3 kampanyayı çekiyoruz
       const { data: benzerVeri } = await supabase
         .from('kampanya')
         .select('id, baslik, slug, yapan_marka_bilgisi:yapan_marka(logo_url, marka_adi)')
         .eq('kampanya_turu', data.kampanya_turu)
-        .neq('id', data.id) // Şu anki kampanyayı listeden çıkar
+        .neq('id', data.id)
         .limit(3)
         .order('created_at', { ascending: false });
 
@@ -157,17 +155,28 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
                 </div>
               </div>
 
+              {/* --- DÜZENLENMİŞ RESPONSIVE BUTONLAR --- */}
               <div className="flex flex-col md:flex-row gap-4 mt-8">
                   {disLink ? (
-                      <a href={disLink} target="_blank" rel="noopener noreferrer" className="flex-1 py-6 bg-white hover:bg-blue-600 hover:text-white text-black text-xl font-black rounded-[2rem] flex items-center justify-center gap-2 transition-all shadow-xl no-underline group">
-                          MARKANIN SAYFASINA GİT <span className="text-sm opacity-50 group-hover:translate-x-1 transition-transform">↗</span>
+                      <a 
+                        href={disLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="flex-1 py-5 md:py-6 bg-white hover:bg-blue-600 hover:text-white text-black text-base md:text-xl font-black rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center gap-2 transition-all shadow-xl no-underline group"
+                      >
+                          <span className="md:hidden">KAMPANYAYA GİT</span>
+                          <span className="hidden md:inline">MARKANIN SAYFASINA GİT</span>
+                          <span className="text-sm opacity-50 group-hover:translate-x-1 transition-transform">↗</span>
                       </a>
                   ) : (
-                      <div className="flex-1 py-6 bg-white/10 text-white/40 text-sm font-bold rounded-[2rem] flex items-center justify-center uppercase tracking-widest cursor-not-allowed border border-white/5">
+                      <div className="flex-1 py-5 md:py-6 bg-white/10 text-white/40 text-xs md:text-sm font-bold rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center uppercase tracking-widest cursor-not-allowed border border-white/5">
                           LİNK MEVCUT DEĞİL
                       </div>
                   )}
-                  <button onClick={shareWhatsApp} className="w-full md:w-auto px-8 py-6 bg-white/5 hover:bg-green-600 text-white rounded-[2rem] font-bold transition-all flex items-center justify-center gap-2">
+                  <button 
+                    onClick={shareWhatsApp} 
+                    className="w-full md:w-auto px-8 py-5 md:py-6 bg-white/5 hover:bg-green-600 text-white rounded-[1.5rem] md:rounded-[2rem] font-bold text-sm transition-all flex items-center justify-center gap-2"
+                  >
                       <span>WhatsApp</span>
                   </button>
               </div>
@@ -181,7 +190,6 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
           </div>
         </div>
 
-        {/* --- YENİ: BENZER KAMPANYALAR BÖLÜMÜ --- */}
         {benzerler.length > 0 && (
           <div className="mt-16 mb-8">
             <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.3em] ml-2 mb-6">İlgini Çekebilecek Diğer Fırsatlar</h3>
@@ -200,7 +208,6 @@ export default function KampanyaDetay({ params }: { params: Promise<{ slug: stri
           </div>
         )}
 
-        {/* SSS BÖLÜMÜ */}
         <div className="mt-16 space-y-4">
             <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.3em] ml-2">Sıkça Sorulan Sorular</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

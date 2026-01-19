@@ -7,31 +7,29 @@ import { useRouter } from 'next/navigation';
 export default function KampanyaEkle() {
   const router = useRouter();
   const [yukleniyor, setYukleniyor] = useState(false);
+  const [paylasimModu, setPaylasimModu] = useState(false); // Yeni: Paylaşım ekranı kontrolü
+  const [eklenenKampanya, setEklenenKampanya] = useState<any>(null); // Yeni: Eklenen veri hafızası
   
-  // Veritabanından gelecek listeler
   const [markalar, setMarkalar] = useState<any[]>([]);
   const [sektorler, setSektorler] = useState<any[]>([]);
   const [turler, setTurler] = useState<any[]>([]);
 
-  // Form Verileri
   const [form, setForm] = useState({
     baslik: '',
-    detay: '', // HTML Tablo kodu buraya gelecek
+    detay: '',
     link: '',
     bitis_date: '',
-    yapan_marka: '', // ID
-    fayd_marka: '',  // ID
+    yapan_marka: '',
+    fayd_marka: '',
     gecerli_sektor_id: '',
     kampanya_turu: ''
   });
 
-  // Sayfa açılınca verileri çek
   useEffect(() => {
     const verileriGetir = async () => {
       const { data: mData } = await supabase.from('marka').select('id, marka_adi, logo_url').order('marka_adi');
       const { data: sData } = await supabase.from('sektor').select('id, sektor_adi').order('sektor_adi');
       const { data: tData } = await supabase.from('kampanya_turu').select('id, tur_adi').order('tur_adi');
-
       setMarkalar(mData || []);
       setSektorler(sData || []);
       setTurler(tData || []);
@@ -39,41 +37,28 @@ export default function KampanyaEkle() {
     verileriGetir();
   }, []);
 
-  // --- 🔥 GÜNCELLENMİŞ AKILLI YAPIŞTIRMA (Temizlikçili) ---
   const handleAkilliYapistir = (val: string) => {
-    // 1. Önce yapıştırılanı kutuya koy ki ne yapıştırdığını gör
-    // (Henüz parse etmedik)
     let yeniForm = { ...form, detay: val };
-    
-    // TEMİZLİK ZAMANI: Gemini'nin eklediği ```json ve ``` işaretlerini temizle
     let temizVal = val.trim();
     if (temizVal.startsWith('```json')) {
         temizVal = temizVal.replace('```json', '');
     } else if (temizVal.startsWith('```')) {
         temizVal = temizVal.replace('```', '');
     }
-    
     if (temizVal.endsWith('```')) {
-        temizVal = temizVal.replace('```', ''); // Sondaki tırnakları sil
+        temizVal = temizVal.replace('```', '');
     }
 
     try {
-        // 2. Artık temizlenen veriyi JSON'a çevirmeyi dene
         const json = JSON.parse(temizVal);
-
         if (json.html_kodu) {
-            
-            // A) HTML Kodunu ve Temel Bilgileri Al
             yeniForm.detay = json.html_kodu;
             if (json.baslik) yeniForm.baslik = json.baslik;
             if (json.son_tarih) yeniForm.bitis_date = json.son_tarih;
 
-            // B) Marka ID Bulma Fonksiyonu
             const markaIdBul = (isim: string) => {
                 if (!isim || markalar.length === 0) return "";
                 const aranan = isim.toLowerCase().trim();
-                
-                // Tam eşleşme veya içerme kontrolü
                 const eslesen = markalar.find(m => 
                     m.marka_adi.toLowerCase() === aranan || 
                     m.marka_adi.toLowerCase().includes(aranan) ||
@@ -82,22 +67,16 @@ export default function KampanyaEkle() {
                 return eslesen ? eslesen.id : "";
             };
 
-            // C) Markaları Eşleştir
             if (json.yapan_marka) {
                 const id = markaIdBul(json.yapan_marka);
                 if (id) yeniForm.yapan_marka = id;
             }
-
             if (json.faydalanilan_marka) {
                 const id = markaIdBul(json.faydalanilan_marka);
                 if (id) yeniForm.fayd_marka = id;
             }
         }
-    } catch (e) {
-        // JSON değilse hiçbir şey yapma, kullanıcı belki elle düzeltiyordur.
-        // Hata vermiyoruz ki form bozulmasın.
-    }
-
+    } catch (e) {}
     setForm(yeniForm);
   };
 
@@ -111,21 +90,9 @@ export default function KampanyaEkle() {
     e.preventDefault();
     setYukleniyor(true);
 
-    // Link Kontrolü
     if (form.link && form.link.trim() !== "") {
         const { data: linkVarMi } = await supabase.from('kampanya').select('id, baslik').eq('link', form.link.trim()).maybeSingle();
         if (linkVarMi) { alert(`⚠️ BU LİNK ZATEN KAYITLI!\n"${linkVarMi.baslik}"`); setYukleniyor(false); return; }
-    }
-
-    // Marka İkilisi Kontrolü
-    if (form.yapan_marka && form.fayd_marka) {
-        const { data: ikili } = await supabase.from('kampanya').select('id, baslik')
-            .eq('yapan_marka', form.yapan_marka)
-            .eq('fayd_marka', form.fayd_marka)
-            .gte('bitis_date', new Date().toISOString().split('T')[0])
-            .maybeSingle();
-            
-        if (ikili) { if(!confirm(`⚠️ Bu markalar arasında aktif kampanya var: "${ikili.baslik}". Devam?`)) { setYukleniyor(false); return; } }
     }
 
     const payload = {
@@ -140,53 +107,46 @@ export default function KampanyaEkle() {
         slug: slugOlustur(form.baslik)
     };
 
-    const { error } = await supabase.from('kampanya').insert([payload]);
+    const { data, error } = await supabase.from('kampanya').insert([payload]).select().single();
 
-    if (error) { alert('Hata: ' + error.message); setYukleniyor(false); } 
-    else { alert('✅ Yayınlandı!'); router.push('/admin'); }
+    if (error) { 
+        alert('Hata: ' + error.message); 
+        setYukleniyor(false); 
+    } else {
+        // ✅ YÖNLENDİRME YERİNE MODALI AÇIYORUZ
+        setEklenenKampanya(data);
+        setPaylasimModu(true);
+        setYukleniyor(false);
+    }
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-10 px-6">
+    <div className="max-w-7xl mx-auto py-10 px-6 relative">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-black text-slate-900 tracking-tight" style={{ fontFamily: 'Outfit' }}>Yeni Kampanya</h2>
         <button type="button" onClick={() => router.back()} className="text-sm font-bold text-slate-400 hover:text-slate-600">← İptal</button>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        
-        {/* --- SOL: FORM ALANI --- */}
         <form onSubmit={kaydet} className="space-y-6">
-            
-            {/* BAŞLIK */}
             <div>
                 <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Başlık (Otomatik)</label>
                 <input required type="text" className="w-full bg-white border-2 border-slate-100 p-4 rounded-xl font-bold text-lg outline-none focus:border-blue-600 text-slate-900 transition-colors"
                   value={form.baslik} onChange={(e) => setForm({...form, baslik: e.target.value})} />
             </div>
 
-            {/* JSON EDİTÖRÜ */}
             <div>
                 <div className="flex justify-between items-center mb-2">
                     <label className="block text-[10px] font-black uppercase tracking-widest text-blue-600">✨ GEMINI JSON ALANI</label>
                     <span className="text-[9px] bg-slate-100 text-slate-500 px-2 py-1 rounded font-bold">OTOMATİK TEMİZLEYİCİ</span>
                 </div>
-                {/* Textarea'ya yapıştırılan değeri handleAkilliYapistir fonksiyonuna gönderiyoruz */}
                 <textarea rows={12} placeholder="{ 'baslik': '...', 'yapan_marka': '...', 'html_kodu': '...' }" 
                   className="w-full bg-[#1e1e1e] text-green-400 border-2 border-slate-800 p-4 rounded-xl font-mono text-xs outline-none focus:border-blue-500 shadow-inner resize-none"
-                  
-                  // Burası kritik: Value olarak form.detay'ı değil, geçici bir state'i veya 
-                  // kullanıcı parse edilmiş halini görsün istiyorsak direkt detay'ı gösteriyoruz.
-                  // Kullanıcı buraya yapıştırdığında 'handleAkilliYapistir' devreye giriyor.
                   value={form.detay} 
                   onChange={(e) => handleAkilliYapistir(e.target.value)} 
                 />
-                 <p className="text-[10px] text-slate-400 mt-2">
-                   💡 Gemini'nin verdiği kodun başında ```json yazsa bile direkt yapıştır, ben temizlerim.
-                </p>
             </div>
 
-            {/* MARKA SEÇİMLERİ (Otomatik Seçilir) */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Yapan Marka</label>
@@ -206,7 +166,6 @@ export default function KampanyaEkle() {
                 </div>
             </div>
 
-            {/* DİĞER BİLGİLER */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Sektör</label>
@@ -244,16 +203,12 @@ export default function KampanyaEkle() {
             </button>
         </form>
 
-        {/* --- SAĞ: CANLI ÖNİZLEME (Responsive) --- */}
         <div className="hidden lg:block relative">
             <div className="sticky top-6">
                 <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Sitede Böyle Görünecek</h3>
-                
                 <div className="bg-[#0D0F14] rounded-[3rem] p-8 border border-white/5 shadow-2xl min-h-[500px]">
-                    {/* Marka & Başlık */}
                     <div className="flex items-center gap-3 mb-8 opacity-90">
                         <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center font-bold text-black text-xs border-2 border-blue-500 overflow-hidden">
-                             {/* Logo Gösterimi */}
                              {form.yapan_marka ? (
                                 markalar.find(m=>m.id==form.yapan_marka)?.logo_url ? 
                                 <img src={markalar.find(m=>m.id==form.yapan_marka)?.logo_url} className="w-full h-full object-contain" alt="" /> :
@@ -271,12 +226,9 @@ export default function KampanyaEkle() {
                             )}
                         </div>
                     </div>
-
                     <h1 className="text-3xl font-black text-white mb-8 leading-tight" style={{ fontFamily: 'Outfit' }}>
                         {form.baslik || "Kampanya Başlığı..."}
                     </h1>
-
-                    {/* HTML İÇERİK RENDER ALANI */}
                     <div 
                         className="prose prose-invert max-w-none text-slate-300 text-sm leading-relaxed whitespace-pre-wrap [&>div]:whitespace-normal"
                         dangerouslySetInnerHTML={{ 
@@ -285,12 +237,51 @@ export default function KampanyaEkle() {
                             : (form.detay || "<p class='opacity-20 text-xs'>Tablo önizlemesi burada belirecek...</p>") 
                         }}
                     />
-
                 </div>
             </div>
         </div>
-
       </div>
+
+      {/* 🔥 SOSYAL MEDYA ASİSTANI (MODAL) */}
+      {paylasimModu && eklenenKampanya && (
+        <div className="fixed inset-0 bg-black/90 z-[999] flex items-center justify-center p-4 backdrop-blur-md">
+          <div className="bg-white rounded-[3rem] p-8 max-w-xl w-full shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="text-center mb-8">
+               <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">✅</div>
+               <h2 className="text-2xl font-black text-slate-900" style={{ fontFamily: 'Outfit' }}>Yayınlandı!</h2>
+               <p className="text-slate-500 font-bold text-sm italic">Siyah Kutu başarıyla teslim edildi.</p>
+            </div>
+
+            <div className="bg-[#0D0F14] p-8 rounded-[2rem] mb-8 border-4 border-blue-600">
+               <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center p-1 text-[8px] font-black text-black uppercase">
+                     {markalar.find(m=>m.id==eklenenKampanya.yapan_marka)?.marka_adi.charAt(0)}
+                  </div>
+                  <span className="text-white font-black text-[10px] tracking-widest uppercase">Yeni Fırsat</span>
+               </div>
+               <h3 className="text-xl font-black text-white leading-tight mb-4" style={{ fontFamily: 'Outfit' }}>
+                  {eklenenKampanya.baslik}
+               </h3>
+               <div className="inline-block bg-blue-600 text-white px-4 py-2 rounded-full font-black text-[10px]">
+                  BİKODVARDI.COM
+               </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+               <button onClick={() => {
+                 const text = `🔥 Yeni Fırsat: ${eklenenKampanya.baslik}\n\nDetaylar: https://bikodvardi.com/kampanya/${eklenenKampanya.slug}\n\n#kampanya #indirim #fırsat #bikodvardi`;
+                 navigator.clipboard.writeText(text);
+                 alert("Açıklama kopyalandı! Sosyal medyada paylaşmaya hazırsın. 😎");
+               }} className="bg-slate-900 text-white p-5 rounded-2xl font-black text-sm hover:bg-black transition-all flex items-center justify-center gap-2">
+                  Metni ve Linki Kopyala 📋
+               </button>
+               <button onClick={() => router.push('/admin')} className="bg-slate-100 text-slate-600 p-4 rounded-2xl font-bold text-xs hover:bg-slate-200 transition-all uppercase tracking-widest">
+                  Admin Paneline Dön
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
