@@ -8,9 +8,8 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({ kampanya: 0, marka: 0, sektor: 0, aktifKampanya: 0 });
   const [tumKampanyalar, setTumKampanyalar] = useState<any[]>([]);
   const [filtreliKampanyalar, setFiltreliKampanyalar] = useState<any[]>([]);
-  const [markalar, setMarkalar] = useState<any[]>([]); // Marka listesi için
+  const [markalar, setMarkalar] = useState<any[]>([]); 
   
-  // Filtre State'leri
   const [aramaMetni, setAramaMetni] = useState('');
   const [durumFiltresi, setDurumFiltresi] = useState('hepsi'); 
   const [seciliYapanMarka, setSeciliYapanMarka] = useState('hepsi');
@@ -20,8 +19,6 @@ export default function AdminDashboard() {
 
   const veriGetir = async () => {
     setYukleniyor(true);
-    
-    // İstatistikler
     const { count: kSayisi } = await supabase.from('kampanya').select('*', { count: 'exact' });
     const { count: mSayisi } = await supabase.from('marka').select('*', { count: 'exact' });
     const { count: sSayisi } = await supabase.from('sektor').select('*', { count: 'exact' });
@@ -29,11 +26,9 @@ export default function AdminDashboard() {
 
     setStats({ kampanya: kSayisi || 0, marka: mSayisi || 0, sektor: sSayisi || 0, aktifKampanya: aSayisi || 0 });
 
-    // Markaları Getir (Filtre menüleri için)
     const { data: mData } = await supabase.from('marka').select('id, marka_adi').order('marka_adi');
     setMarkalar(mData || []);
 
-    // Tüm Kampanyaları Getir
     const { data } = await supabase
       .from('kampanya')
       .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi), faydalanan_marka_bilgisi:fayd_marka(marka_adi)')
@@ -46,12 +41,10 @@ export default function AdminDashboard() {
 
   useEffect(() => { veriGetir(); }, []);
 
-  // ÇOKLU FİLTRELEME MANTIĞI
   useEffect(() => {
     const sonuclar = tumKampanyalar.filter(k => {
       const bugun = new Date().toISOString().split('T')[0];
       const isAktif = k.bitis_date >= bugun;
-
       const metinUyumu = 
         k.baslik.toLowerCase().includes(aramaMetni.toLowerCase()) ||
         k.yapan_marka_bilgisi?.marka_adi.toLowerCase().includes(aramaMetni.toLowerCase());
@@ -83,13 +76,17 @@ export default function AdminDashboard() {
             <h2 className="text-4xl font-[900] text-slate-900 tracking-tighter" style={{ fontFamily: 'Outfit' }}>Komuta Merkezi 🚀</h2>
             <p className="text-slate-500 font-medium">Toplam {stats.kampanya} kampanyayı yönetiyorsun.</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
+             {/* 🔥 YENİ: MEDYA STÜDYOSU SEKMESİ */}
+             <Link href="/admin/medya-studyo" className="bg-slate-900 text-white px-6 py-4 rounded-3xl font-bold hover:bg-blue-600 shadow-sm transition-all no-underline flex items-center gap-2">
+               🎨 Medya Stüdyosu
+             </Link>
              <Link href="/admin/marka-duzenle" className="bg-white text-slate-900 border border-slate-200 px-6 py-4 rounded-3xl font-bold hover:bg-slate-50 shadow-sm transition-all no-underline">
-              🏷️ Markaları Yönet
-            </Link>
-            <Link href="/admin/kampanya-ekle" className="bg-blue-600 text-white px-8 py-4 rounded-3xl font-bold hover:bg-black shadow-lg transition-all no-underline">
-              + Yeni Kampanya
-            </Link>
+               🏷️ Markalar
+             </Link>
+             <Link href="/admin/kampanya-ekle" className="bg-blue-600 text-white px-8 py-4 rounded-3xl font-bold hover:bg-black shadow-lg transition-all no-underline">
+               + Yeni Kampanya
+             </Link>
           </div>
       </div>
 
@@ -104,7 +101,7 @@ export default function AdminDashboard() {
       {/* GELİŞMİŞ FİLTRELEME ALANI */}
       <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 mb-8 shadow-sm space-y-4">
         <div className="relative">
-          <span className="absolute left-5 top-1/2 -translate-y-1/2 text-xl">🔍</span>
+          <span className="absolute left-5 top-1/2 -translate-y-1-2 text-xl">🔍</span>
           <input 
             type="text" 
             placeholder="Kampanya başlığı ile ara..."
@@ -115,33 +112,21 @@ export default function AdminDashboard() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* DURUM FİLTRESİ */}
-            <select 
-              className="px-6 py-4 rounded-2xl bg-slate-50 border-none outline-none font-bold text-slate-600 cursor-pointer focus:ring-2 focus:ring-blue-500 transition-all text-sm"
-              value={durumFiltresi}
-              onChange={(e) => setDurumFiltresi(e.target.value)}
-            >
+            <select className="px-6 py-4 rounded-2xl bg-slate-50 border-none outline-none font-bold text-slate-600 cursor-pointer focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+              value={durumFiltresi} onChange={(e) => setDurumFiltresi(e.target.value)}>
               <option value="hepsi">Durum: Hepsi</option>
               <option value="aktif">Sadece Aktifler ✅</option>
               <option value="pasif">Süresi Dolanlar ❌</option>
             </select>
 
-            {/* YAPAN MARKA FİLTRESİ */}
-            <select 
-              className="px-6 py-4 rounded-2xl bg-slate-50 border-none outline-none font-bold text-slate-600 cursor-pointer focus:ring-2 focus:ring-blue-500 transition-all text-sm"
-              value={seciliYapanMarka}
-              onChange={(e) => setSeciliYapanMarka(e.target.value)}
-            >
+            <select className="px-6 py-4 rounded-2xl bg-slate-50 border-none outline-none font-bold text-slate-600 cursor-pointer focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+              value={seciliYapanMarka} onChange={(e) => setSeciliYapanMarka(e.target.value)}>
               <option value="hepsi">Yapan: Tüm Markalar</option>
               {markalar.map(m => <option key={m.id} value={m.id}>{m.marka_adi}</option>)}
             </select>
 
-            {/* FAYDALANAN MARKA FİLTRESİ */}
-            <select 
-              className="px-6 py-4 rounded-2xl bg-slate-50 border-none outline-none font-bold text-slate-600 cursor-pointer focus:ring-2 focus:ring-blue-500 transition-all text-sm"
-              value={seciliFaydalananMarka}
-              onChange={(e) => setSeciliFaydalananMarka(e.target.value)}
-            >
+            <select className="px-6 py-4 rounded-2xl bg-slate-50 border-none outline-none font-bold text-slate-600 cursor-pointer focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+              value={seciliFaydalananMarka} onChange={(e) => setSeciliFaydalananMarka(e.target.value)}>
               <option value="hepsi">Faydalanılan: Tüm Markalar</option>
               {markalar.map(m => <option key={m.id} value={m.id}>{m.marka_adi}</option>)}
             </select>
@@ -151,14 +136,14 @@ export default function AdminDashboard() {
       {/* LİSTE */}
       <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
           <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-            <h3 className="font-black text-slate-900 uppercase tracking-widest text-[10px]">Kampanya Arşivi ({filtreliKampanyalar.length} Kayıt Listeleniyor)</h3>
+            <h3 className="font-black text-slate-900 uppercase tracking-widest text-[10px]">Kampanya Arşivi ({filtreliKampanyalar.length} Kayıt)</h3>
           </div>
           
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
                 <thead>
                     <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 bg-slate-50/50">
-                        <th className="py-4 pl-8">Markalar (Yapan &gt; Faydalanan)</th>
+                        <th className="py-4 pl-8">Markalar</th>
                         <th className="py-4">Kampanya Başlığı</th>
                         <th className="py-4">Durum</th>
                         <th className="py-4 text-right pr-8">İşlemler</th>
@@ -178,20 +163,24 @@ export default function AdminDashboard() {
                             <td className="py-4 font-medium text-slate-500 max-w-xs">{k.baslik}</td>
                             <td className="py-4">
                               <span className={`px-3 py-1 rounded-lg text-[10px] uppercase font-black ${isAktif ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-400'}`}>
-                                {isAktif ? 'Aktif' : 'Süresi Doldu'}
+                                {isAktif ? 'Aktif' : 'Bitti'}
                               </span>
                             </td>
                             <td className="py-4 text-right pr-8 flex justify-end gap-2">
+                                {/* 🔥 YENİ: GÖRSEL OLUŞTUR BUTONU */}
+                                <Link 
+                                  href={`/admin/medya-studyo?slug=${k.slug}`} 
+                                  className="px-4 py-2.5 bg-slate-900 text-white rounded-xl transition-all no-underline text-[10px] uppercase tracking-wide hover:bg-blue-600"
+                                >
+                                  🎨 Görsel
+                                </Link>
                                 <Link 
                                   href={`/admin/kampanya-duzenle/${k.slug}`} 
-                                  className="px-5 py-2.5 bg-slate-100 hover:bg-blue-600 hover:text-white rounded-xl transition-all no-underline text-slate-600 font-bold text-[10px] uppercase tracking-wide"
+                                  className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl transition-all no-underline text-[10px] uppercase tracking-wide hover:bg-slate-200"
                                 >
                                   Düzenle
                                 </Link>
-                                <button 
-                                  onClick={() => kampanyaSil(k.id)} 
-                                  className="px-4 py-2.5 bg-white border border-slate-100 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all text-slate-300 font-bold text-[10px] uppercase"
-                                >
+                                <button onClick={() => kampanyaSil(k.id)} className="px-4 py-2.5 text-slate-300 hover:text-red-600 transition-all font-bold text-[10px] uppercase">
                                   Sil
                                 </button>
                             </td>
@@ -201,10 +190,6 @@ export default function AdminDashboard() {
                 </tbody>
             </table>
           </div>
-          
-          {filtreliKampanyalar.length === 0 && (
-            <div className="p-20 text-center text-slate-300 font-black uppercase tracking-widest text-xs">Kriterlere uygun kampanya bulunamadı.</div>
-          )}
       </div>
     </div>
   );
