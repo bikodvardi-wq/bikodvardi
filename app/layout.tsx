@@ -1,7 +1,7 @@
 import { GoogleAnalytics } from '@next/third-parties/google'  
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import Script from "next/script"; // AdSense için gerekli
+import Script from "next/script";
 
 export const viewport: Viewport = {
   themeColor: "#2563eb",
@@ -11,6 +11,15 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  // --- 🔥 KRİTİK SEO AYARLARI ---
+  metadataBase: new URL('https://bikodvardi.com'), // Google'ın seçtiği asıl adres
+  verification: {
+    google: "BURAYA_SEARCH_CONSOLE_KODUNU_KOY", // Google Search Console'daki doğrulama kodu
+  },
+  alternates: {
+    canonical: 'https://bikodvardi.com', // Yönlendirme hatasını çözen satır
+  },
+  // ------------------------------
   title: {
     default: "biKodVardı | En Güncel İndirim Kodları ve Kampanyalar",
     template: "%s | biKodVardı"
@@ -46,35 +55,31 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="tr">
       <head>
-        {/* GOOGLE ADSENSE KODU BAŞLANGIÇ */}
-        {/* ca-pub-XXXXXXXXXXXXXXXX kısmını AdSense panelindeki kendi numaranla değiştir */}
         <Script
           id="adsbygoogle-init"
           strategy="afterInteractive"
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9467886699019448"
           crossOrigin="anonymous"
         />
-        {/* GOOGLE ADSENSE KODU BİTİŞ */}
       </head>
       <body>
         <script
-  type="application/ld+json"
-  dangerouslySetInnerHTML={{
-    __html: JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "biKodVardı",
-      "url": "https://bikodvardi.com",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://bikodvardi.com/marka?ara={search_term_string}",
-        "query-input": "required name=search_term_string"
-      }
-    })
-  }}
-/>
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "biKodVardı",
+              "url": "https://bikodvardi.com",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://bikodvardi.com/marka?ara={search_term_string}",
+                "query-input": "required name=search_term_string"
+              }
+            })
+          }}
+        />
         {children}
-        {/* Google Analytics Buraya Eklendi */}
         <GoogleAnalytics gaId="G-0N4WX0JBNB" /> 
       </body>
     </html>

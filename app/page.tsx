@@ -7,7 +7,8 @@ import Link from 'next/link';
 export default function Home() {
   const [sektorler, setSektorler] = useState<any[]>([]);
   const [populerMarkalar, setPopulerMarkalar] = useState<any[]>([]);
-  const [enYeniKampanyalar, setEnYeniKampanyalar] = useState<any[]>([]); // YENİ: Banner için
+  const [enYeniKampanyalar, setEnYeniKampanyalar] = useState<any[]>([]);
+  const [ucretsizKampanyalar, setUcretsizKampanyalar] = useState<any[]>([]); // 🔥 YENİ
   const [yukleniyor, setYukleniyor] = useState(true);
   const [aramaTerimi, setAramaTerimi] = useState("");
   const [aramaSonuclari, setAramaSonuclari] = useState<any[]>([]);
@@ -21,7 +22,6 @@ export default function Home() {
 
     const veriGetir = async () => {
       setYukleniyor(true);
-      // Promise.all içine yeni kampanyalar sorgusunu da ekledik
       const [sRes, mRes, kRes, yeniKRes] = await Promise.all([
         supabase.from('sektor').select('*, gorsel_url'),
         supabase.from('marka').select('*'),
@@ -29,13 +29,20 @@ export default function Home() {
         supabase.from('kampanya')
           .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url)')
           .order('created_at', { ascending: false })
-          .limit(6) // En yeni 6 kampanya
+          .limit(40) // Ücretsizleri içinden süzebilmek için limiti biraz artırdık
       ]);
 
       const sData = sRes.data || [];
       const mData = mRes.data || [];
       const kData = kRes.data || [];
       const yeniKData = yeniKRes.data || [];
+
+      // 🔥 FLAŞ FİLTRE: Kampanya Türü 3 (Ücretsiz Ürün) veya 4 (Ücretsiz Hizmet)
+      const bedavalar = yeniKData.filter(k => 
+        Number(k.kampanya_turu) === 3 || Number(k.kampanya_turu) === 4
+      ).slice(0, 3);
+      
+      setUcretsizKampanyalar(bedavalar);
 
       const benzersizKampanyalar = new Set();
       
@@ -55,7 +62,6 @@ export default function Home() {
         return { ...sektor, firsatSayisi: sektorKampanyaSet.size };
       }).sort((a, b) => b.firsatSayisi - a.firsatSayisi);
 
-      // Popüler markaları (En çok kampanyası olanlar) seçelim
       const markalarFirsatli = mData.map(m => ({
         ...m,
         firsatSayisi: kData.filter(k => String(k.fayd_marka) === String(m.id)).length
@@ -63,7 +69,7 @@ export default function Home() {
 
       setSektorler(siraliSektorler);
       setPopulerMarkalar(markalarFirsatli);
-      setEnYeniKampanyalar(yeniKData);
+      setEnYeniKampanyalar(yeniKData.slice(0, 6)); // Banner akışı normal devam eder
       setStats({ toplam: benzersizKampanyalar.size, aktif: benzersizKampanyalar.size });
       setYukleniyor(false);
     };
@@ -110,7 +116,7 @@ export default function Home() {
           </Link>
           <div className="flex gap-3">
              <a href="https://wa.me/channel/LINKIN" target="_blank" className="hidden md:flex items-center gap-2 text-sm font-bold text-green-600 bg-green-50 px-4 py-2 rounded-full hover:bg-green-100 transition no-underline border border-green-100">
-                WhatsApp
+               WhatsApp
              </a>
              <a href="https://t.me/bikodvardi" target="_blank" className="w-10 h-10 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition shadow-sm border border-blue-100 no-underline">
                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
@@ -121,7 +127,7 @@ export default function Home() {
 
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         {/* HERO SECTION */}
-        <header className="text-center pt-10 md:pt-16 pb-8 max-w-4xl mx-auto flex flex-col items-center">
+        <header className="text-center pt-10 md:pt-16 pb-12 max-w-4xl mx-auto flex flex-col items-center">
           <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full mb-6 shadow-sm">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -135,7 +141,7 @@ export default function Home() {
             <span className="text-blue-600 italic font-light tracking-normal">bi'kod bul.</span>
           </h2>
           
-          <div className="relative w-full max-w-2xl mx-auto mt-2">
+          <div className="relative w-full max-w-2xl mx-auto">
             <input 
               type="text" 
               placeholder="Hangi markada indirim arıyorsun?" 
@@ -154,6 +160,40 @@ export default function Home() {
             )}
           </div>
         </header>
+
+        {/* 🔥 YENİ: FLAŞ ÜCRETSİZ FIRSATLAR BÖLÜMÜ (Kategori 3 ve 4) */}
+        {ucretsizKampanyalar.length > 0 && (
+          <section className="mb-14 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+            <div className="flex items-center gap-3 mb-6 px-2">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter" style={{ fontFamily: 'Outfit' }}>
+                Flaş Ücretsiz Fırsatlar ⚡
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {ucretsizKampanyalar.map((k) => (
+                <Link key={k.id} href={`/kampanya/${k.slug}`} className="group relative bg-[#0D0F14] rounded-[2.5rem] p-8 border border-white/5 overflow-hidden hover:scale-[1.02] transition-all no-underline shadow-2xl shadow-blue-950/20">
+                  <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-600/20 blur-[40px] group-hover:bg-blue-600/40 transition-colors"></div>
+                  <div className="relative z-10">
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="bg-white p-2.5 rounded-2xl shadow-lg">
+                         <img src={k.yapan_marka_bilgisi?.logo_url} className="h-6 w-auto object-contain" alt="" />
+                      </div>
+                      <span className="bg-green-500 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest animate-bounce">BEDAVA</span>
+                    </div>
+                    <h4 className="text-white font-black text-xl leading-tight mb-3 group-hover:text-blue-400 transition-colors" style={{ fontFamily: 'Outfit' }}>
+                      {k.baslik}
+                    </h4>
+                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em]">0 TL Öde!</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* --- YENİ EKLENEN KAMPANYALAR (BANNER MODÜLÜ) --- */}
         <section className="mb-14">
@@ -178,7 +218,6 @@ export default function Home() {
                                 {k.yapan_marka_bilgisi?.marka_adi}
                             </p>
                         </div>
-                        {/* Arka plan dekoratif logo */}
                         <div className="absolute -right-6 -bottom-6 opacity-[0.03] group-hover:opacity-[0.08] transition-all">
                             <img src={k.yapan_marka_bilgisi?.logo_url} className="w-40 h-40 object-contain rotate-12" />
                         </div>
@@ -187,7 +226,7 @@ export default function Home() {
             </div>
         </section>
 
-        {/* --- POPÜLER MARKALAR (KÜÇÜK VE ŞIK ETİKETLER) --- */}
+        {/* --- POPÜLER MARKALAR --- */}
         <div className="max-w-7xl mx-auto mb-16">
           <div className="flex items-center justify-between mb-6 px-2 text-center md:text-left">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 w-full md:w-auto">En Çok Kampanya Yapanlar</h3>
@@ -212,7 +251,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* --- REKLAM ALANI 1 (ADSENSE) --- */}
+        {/* REKLAM ALANI 1 */}
         <div className="w-full h-24 bg-white/50 border border-slate-200 border-dashed rounded-3xl mb-16 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
             REKLAM ALANI
         </div>
@@ -243,13 +282,13 @@ export default function Home() {
           </div>
         </section>
 
-        {/* --- REKLAM ALANI 2 (BÜYÜK) --- */}
+        {/* REKLAM ALANI 2 */}
         <div className="w-full h-48 bg-white/50 border border-slate-200 border-dashed rounded-[3.5rem] mt-24 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
               SPONSORLU BAĞLANTI / REKLAM
         </div>
       </div>
 
-      {/* --- FOOTER --- */}
+      {/* FOOTER */}
       <footer className="mt-40 bg-white border-t border-slate-200 pt-16 pb-12">
         <div className="max-w-7xl mx-auto px-6 text-left">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
@@ -279,24 +318,6 @@ export default function Home() {
               <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black pt-2">© 2026 BİKODVARDI — TÜM HAKLARI SAKLIDIR.</p>
             </div>
           </div>
-        </div>
-      </footer>
- 
-      <footer className="mt-20 py-12 text-center border-t border-slate-100 bg-white/50">
-        <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.4em] mb-6">
-            bi<span className="text-blue-600">kod</span>vardı — 2026
-        </p>
-        
-        <div className="flex flex-wrap justify-center items-center gap-6 md:gap-12">
-          <Link href="/hakkimizda" className="text-[10px] font-black text-slate-500 hover:text-blue-600 uppercase tracking-widest no-underline transition-colors">
-            Hakkımızda
-          </Link>
-          <Link href="/gizlilik-politikasi" className="text-[10px] font-black text-slate-500 hover:text-blue-600 uppercase tracking-widest no-underline transition-colors">
-            Gizlilik Politikası
-          </Link>
-          <Link href="/iletisim" className="text-[10px] font-black text-slate-500 hover:text-blue-600 uppercase tracking-widest no-underline transition-colors">
-            İletişim
-          </Link>
         </div>
       </footer>
     </main>
