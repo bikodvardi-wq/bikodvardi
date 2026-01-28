@@ -8,7 +8,7 @@ export default function Home() {
   const [sektorler, setSektorler] = useState<any[]>([]);
   const [populerMarkalar, setPopulerMarkalar] = useState<any[]>([]);
   const [enYeniKampanyalar, setEnYeniKampanyalar] = useState<any[]>([]);
-  const [ucretsizKampanyalar, setUcretsizKampanyalar] = useState<any[]>([]);
+  const [ucretsizKampanyalar, setUcretsizKampanyalar] = useState<any[]>([]); 
   const [yukleniyor, setYukleniyor] = useState(true);
   const [aramaTerimi, setAramaTerimi] = useState("");
   const [aramaSonuclari, setAramaSonuclari] = useState<any[]>([]);
@@ -23,30 +23,35 @@ export default function Home() {
     const veriGetir = async () => {
       try {
         setYukleniyor(true);
-        const [sRes, mRes, kRes, yeniKRes] = await Promise.all([
+        // 🔥 GÜNCELLEME: Artık 5. bir sorgumuz var, direkt bedavaları hedefliyor!
+        const [sRes, mRes, kRes, yeniKRes, ucretsizRes] = await Promise.all([
           supabase.from('sektor').select('*, gorsel_url'),
           supabase.from('marka').select('*'),
-          supabase.from('kampanya').select('id, fayd_marka, gecerli_sektor_id'),
+          supabase.from('kampanya').select('id, fayd_marka, gecerli_sektor_id, kampanya_turu'),
+          // 1. Genel Akış (Banner İçin)
           supabase.from('kampanya')
             .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url)')
             .order('created_at', { ascending: false })
-            .limit(60) // 👈 TEK DEĞİŞİKLİK: 40 yerine 60 yaptık ki tüm ücretsizleri bulsun
+            .limit(10),
+          // 2. ÖZEL SORGU (Flaş Bölüm İçin): Sadece ID 3 ve 4'ü getir
+          supabase.from('kampanya')
+            .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url)')
+            .in('kampanya_turu', [3, 4]) // 👈 İŞTE BU SATIR İŞİ ÇÖZÜYOR
+            .order('created_at', { ascending: false })
+            .limit(3)
         ]);
 
         const sData = sRes.data || [];
         const mData = mRes.data || [];
         const kData = kRes.data || [];
         const yeniKData = yeniKRes.data || [];
+        const ucretsizData = ucretsizRes.data || [];
 
-        // 🔥 FLAŞ FİLTRE: Kampanya Türü 3 (Ücretsiz Ürün) veya 4 (Ücretsiz Hizmet)
-        const bedavalar = yeniKData.filter(k => 
-          Number(k.kampanya_turu) === 3 || Number(k.kampanya_turu) === 4
-        ).slice(0, 3);
-        
-        setUcretsizKampanyalar(bedavalar);
+        // Artık filtrelemeye gerek yok, direkt veriyi basıyoruz
+        setUcretsizKampanyalar(ucretsizData);
 
+        // --- İSTATİSTİK VE SEO HESAPLAMALARI ---
         const benzersizKampanyalar = new Set();
-        
         const siraliSektorler = sData.map(sektor => {
           const sektoreAitMarkalar = mData.filter(m => 
             String(m.sektor_id) === String(sektor.id) || 
@@ -72,6 +77,7 @@ export default function Home() {
         setPopulerMarkalar(markalarFirsatli);
         setEnYeniKampanyalar(yeniKData.slice(0, 6)); 
         setStats({ toplam: benzersizKampanyalar.size, aktif: benzersizKampanyalar.size });
+
       } catch (err) {
         console.error("Veri hatası:", err);
       } finally {
@@ -112,27 +118,20 @@ export default function Home() {
     <main className="min-h-screen bg-[#F8FAFC] font-['Plus_Jakarta_Sans'] text-slate-900 text-left">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      <nav className="sticky top-0 z-[60] bg-white/80 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex justify-between items-center text-left">
+      <nav className="sticky top-0 z-[60] bg-white/80 backdrop-blur-md border-b border-slate-200 py-4 px-4 md:px-8 flex justify-between items-center">
           <Link href="/" className="no-underline">
             <h1 className="text-2xl font-[900] tracking-tighter text-slate-900" style={{ fontFamily: 'Outfit' }}>
               bi<span className="text-blue-600">kod</span>vardı
             </h1>
           </Link>
           <div className="flex gap-3">
-             <a href="https://wa.me/channel/LINKIN" target="_blank" className="hidden md:flex items-center gap-2 text-sm font-bold text-green-600 bg-green-50 px-4 py-2 rounded-full hover:bg-green-100 transition no-underline border border-green-100">
-               WhatsApp
-             </a>
-             <a href="https://t.me/bikodvardi" target="_blank" className="w-10 h-10 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition shadow-sm border border-blue-100 no-underline">
-               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-             </a>
+             <a href="https://wa.me/channel/LINKIN" target="_blank" className="hidden md:flex items-center gap-2 text-sm font-bold text-green-600 bg-green-50 px-4 py-2 rounded-full hover:bg-green-100 transition no-underline border border-green-100">WhatsApp</a>
+             <a href="https://t.me/bikodvardi" target="_blank" className="w-10 h-10 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition border border-blue-100 no-underline">🚀</a>
           </div>
-        </div>
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 md:px-8">
-        {/* HERO SECTION */}
-        <header className="text-center pt-10 md:pt-16 pb-12 max-w-4xl mx-auto flex flex-col items-center">
+        <header className="text-center pt-10 md:pt-16 pb-12 max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full mb-6 shadow-sm">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -140,22 +139,14 @@ export default function Home() {
             </span>
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{stats.toplam} Aktif Kod Yayında</span>
           </div>
-          
           <h2 className="text-5xl md:text-7xl font-[900] tracking-tight text-slate-900 mb-8" style={{ fontFamily: 'Outfit', lineHeight: 1.1 }}>
             İndirim kodu arama, <br/> 
-            <span className="text-blue-600 italic font-light tracking-normal">bi'kod bul.</span>
+            <span className="text-blue-600 italic font-light">bi'kod bul.</span>
           </h2>
-          
           <div className="relative w-full max-w-2xl mx-auto">
-            <input 
-              type="text" 
-              placeholder="Hangi markada indirim arıyorsun?" 
-              value={aramaTerimi} 
-              onChange={(e) => aramaYap(e.target.value)}
-              className="w-full bg-white border border-slate-200 p-5 md:p-6 rounded-3xl outline-none text-lg shadow-xl shadow-blue-900/5 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium" 
-            />
+            <input type="text" placeholder="Marka ara..." value={aramaTerimi} onChange={(e) => aramaYap(e.target.value)} className="w-full bg-white border border-slate-200 p-6 rounded-3xl outline-none text-lg shadow-xl focus:ring-4 focus:ring-blue-500/10 transition-all font-medium" />
             {aramaSonuclari.length > 0 && (
-              <div className="absolute top-[105%] left-0 right-0 bg-white border border-slate-200 rounded-3xl shadow-2xl p-4 z-50 overflow-hidden text-left">
+              <div className="absolute top-[105%] left-0 right-0 bg-white border border-slate-200 rounded-3xl shadow-2xl p-4 z-50 overflow-hidden text-left z-[70]">
                 {aramaSonuclari.map((m: any) => (
                   <Link key={m.id} href={`/marka/${m.slug}`} className="flex items-center gap-4 p-3 hover:bg-blue-50 rounded-2xl transition no-underline text-slate-900 font-bold">
                     {m.marka_adi} İndirim Kodları
@@ -166,7 +157,7 @@ export default function Home() {
           </div>
         </header>
 
-        {/* 🔥 YENİ: FLAŞ ÜCRETSİZ FIRSATLAR BÖLÜMÜ (Tasarım aynı kaldı) */}
+        {/* 🔥 FLAŞ ÜCRETSİZ FIRSATLAR BÖLÜMÜ (3 Sütunlu Grid Yapısı) */}
         {ucretsizKampanyalar.length > 0 && (
           <section className="mb-14 animate-in fade-in slide-in-from-bottom-4 duration-1000">
             <div className="flex items-center gap-3 mb-6 px-2">
@@ -174,13 +165,12 @@ export default function Home() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
               </span>
-              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter" style={{ fontFamily: 'Outfit' }}>
-                Flaş Ücretsiz Fırsatlar ⚡
-              </h3>
+              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter" style={{ fontFamily: 'Outfit' }}>Flaş Ücretsiz Fırsatlar ⚡</h3>
             </div>
+            {/* BURASI KRİTİK: MD ekranlarda 3 sütun olacak şekilde ayarlandı */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {ucretsizKampanyalar.map((k) => (
-                <Link key={k.id} href={`/kampanya/${k.slug}`} className="group relative bg-[#0D0F14] rounded-[2.5rem] p-8 border border-white/5 overflow-hidden hover:scale-[1.02] transition-all no-underline shadow-2xl shadow-blue-950/20">
+                <Link key={k.id} href={`/kampanya/${k.slug}`} className="group relative bg-[#0D0F14] rounded-[2.5rem] p-8 border border-white/5 overflow-hidden hover:scale-[1.02] transition-all no-underline shadow-2xl shadow-blue-950/20 flex flex-col justify-between min-h-[220px]">
                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-600/20 blur-[40px] group-hover:bg-blue-600/40 transition-colors"></div>
                   <div className="relative z-10">
                     <div className="flex justify-between items-start mb-6">
@@ -189,9 +179,7 @@ export default function Home() {
                       </div>
                       <span className="bg-green-500 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest animate-bounce">BEDAVA</span>
                     </div>
-                    <h4 className="text-white font-black text-xl leading-tight mb-3 group-hover:text-blue-400 transition-colors" style={{ fontFamily: 'Outfit' }}>
-                      {k.baslik}
-                    </h4>
+                    <h4 className="text-white font-black text-xl leading-tight mb-3 group-hover:text-blue-400 transition-colors line-clamp-2" style={{ fontFamily: 'Outfit' }}>{k.baslik}</h4>
                     <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em]">0 TL Öde!</p>
                   </div>
                 </Link>
@@ -200,7 +188,7 @@ export default function Home() {
           </section>
         )}
 
-        {/* --- YENİ EKLENEN KAMPANYALAR (BANNER MODÜLÜ) --- */}
+        {/* YENİ KAMPANYALAR AKIŞI */}
         <section className="mb-14">
             <div className="flex items-center justify-between mb-6 px-2">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Yeni Keşfedilen Fırsatlar</h3>
@@ -208,30 +196,26 @@ export default function Home() {
             </div>
             <div className="flex gap-6 overflow-x-auto pb-6 no-scrollbar -mx-4 px-4">
                 {enYeniKampanyalar.map((k) => (
-                    <Link key={k.id} href={`/kampanya/${k.slug}`} className="flex-shrink-0 w-[300px] md:w-[350px] bg-slate-900 p-8 rounded-[3rem] relative overflow-hidden group no-underline transition-transform hover:-translate-y-2">
+                    <Link key={k.id} href={`/kampanya/${k.slug}`} className="flex-shrink-0 w-[300px] md:w-[350px] bg-white p-8 rounded-[3rem] border border-slate-100 relative overflow-hidden group no-underline transition-all hover:shadow-2xl hover:-translate-y-2">
                         <div className="relative z-10">
                             <div className="flex justify-between items-start mb-6">
                                 <span className="bg-blue-600 text-[8px] font-black text-white px-3 py-1 rounded-full uppercase tracking-widest">YENİ</span>
-                                <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center p-2">
+                                <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center p-2 border border-slate-100">
                                     <img src={k.yapan_marka_bilgisi?.logo_url} alt="" className="max-h-full object-contain" />
                                 </div>
                             </div>
-                            <h4 className="text-white font-black text-xl leading-tight mb-2 group-hover:text-blue-400 transition-colors h-14 overflow-hidden" style={{ fontFamily: 'Outfit' }}>
-                                {k.baslik}
-                            </h4>
-                            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-                                {k.yapan_marka_bilgisi?.marka_adi}
-                            </p>
+                            <h4 className="text-slate-900 font-black text-xl leading-tight mb-2 group-hover:text-blue-600 transition-colors h-14 overflow-hidden" style={{ fontFamily: 'Outfit' }}>{k.baslik}</h4>
+                            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{k.yapan_marka_bilgisi?.marka_adi}</p>
                         </div>
                         <div className="absolute -right-6 -bottom-6 opacity-[0.03] group-hover:opacity-[0.08] transition-all">
-                            <img src={k.yapan_marka_bilgisi?.logo_url} className="w-40 h-40 object-contain rotate-12" />
+                             <img src={k.yapan_marka_bilgisi?.logo_url} className="w-40 h-40 object-contain rotate-12" />
                         </div>
                     </Link>
                 ))}
             </div>
         </section>
 
-        {/* --- POPÜLER MARKALAR --- */}
+        {/* POPÜLER MARKALAR */}
         <div className="max-w-7xl mx-auto mb-16">
           <div className="flex items-center justify-between mb-6 px-2 text-center md:text-left">
                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 w-full md:w-auto">En Çok Kampanya Yapanlar</h3>
@@ -263,10 +247,9 @@ export default function Home() {
               <p className="text-3xl font-extrabold text-slate-900" style={{ fontFamily: 'Outfit' }}>Kategori seçerek başla.</p>
             </div>
           </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {sektorler.map((s) => (
-              <Link href={`/sektor/${s.slug}`} key={s.id} className="group bg-white rounded-[2.5rem] overflow-hidden border border-slate-200 hover:border-blue-300 hover:shadow-2xl hover:shadow-blue-900/10 transition-all duration-500 no-underline" title={`${s.sektor_adi} İndirim Kodları`}>
+              <Link href={`/sektor/${s.slug}`} key={s.id} className="group bg-white rounded-[2.5rem] overflow-hidden border border-slate-200 hover:border-blue-300 hover:shadow-2xl transition-all duration-500 no-underline">
                 <div className="h-40 overflow-hidden relative">
                   <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style={{ backgroundImage: `url('${s.gorsel_url || "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1200"}')` }}></div>
                 </div>
@@ -292,28 +275,12 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 text-left">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
             <div className="space-y-4">
-              <h4 className="text-slate-900 font-black uppercase text-xs tracking-widest" style={{ fontFamily: 'Outfit' }}>
-                bi<span className="text-blue-600">kod</span>vardı
-              </h4>
-              <p className="text-slate-500 text-sm leading-relaxed font-medium">
-                Türkiye'nin en güncel <strong>indirim kodu</strong> ve <strong>kampanya</strong> platformu. Aradığın tüm markalar için bi'kod bul.
-              </p>
+              <h4 className="text-slate-900 font-black uppercase text-xs tracking-widest" style={{ fontFamily: 'Outfit' }}>bi<span className="text-blue-600">kod</span>vardı</h4>
+              <p className="text-slate-500 text-sm leading-relaxed font-medium">Türkiye'nin en güncel <strong>indirim kodu</strong> ve <strong>kampanya</strong> platformu.</p>
             </div>
-
-            <div className="space-y-4">
-              <h4 className="text-slate-900 font-black uppercase text-xs tracking-widest" style={{ fontFamily: 'Outfit' }}>
-                Yasal Uyarı
-              </h4>
-              <p className="text-slate-400 text-[11px] leading-relaxed font-medium italic">
-                bikodvardi.com bağımsız bir platformdur. Marka hakları sahiplerine aittir. Paylaşılan kodların çalışabilirliği markaların inisiyatifindedir.
-              </p>
-            </div>
-
             <div className="space-y-4 md:text-right">
-              <h4 className="text-slate-900 font-black uppercase text-xs tracking-widest" style={{ fontFamily: 'Outfit' }}>
-                İletişim
-              </h4>
-              <a href="mailto:iletisim@bikodvardi.com" className="text-blue-600 transition-colors text-sm font-bold no-underline block">iletisim@bikodvardi.com</a>
+              <h4 className="text-slate-900 font-black uppercase text-xs tracking-widest" style={{ fontFamily: 'Outfit' }}>İletişim</h4>
+              <a href="mailto:iletisim@bikodvardi.com" className="text-blue-600 font-bold no-underline block">iletisim@bikodvardi.com</a>
               <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black pt-2">© 2026 BİKODVARDI — TÜM HAKLARI SAKLIDIR.</p>
             </div>
           </div>
