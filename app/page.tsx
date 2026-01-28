@@ -23,22 +23,21 @@ export default function Home() {
     const veriGetir = async () => {
       try {
         setYukleniyor(true);
-        // 🔥 GÜNCELLEME: Artık 5. bir sorgumuz var, direkt bedavaları hedefliyor!
         const [sRes, mRes, kRes, yeniKRes, ucretsizRes] = await Promise.all([
           supabase.from('sektor').select('*, gorsel_url'),
           supabase.from('marka').select('*'),
           supabase.from('kampanya').select('id, fayd_marka, gecerli_sektor_id, kampanya_turu'),
-          // 1. Genel Akış (Banner İçin)
+          // 1. Genel Akış
           supabase.from('kampanya')
             .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url)')
             .order('created_at', { ascending: false })
             .limit(10),
-          // 2. ÖZEL SORGU (Flaş Bölüm İçin): Sadece ID 3 ve 4'ü getir
+          // 2. ÖZEL SORGU: Flaş Bölüm İçin (Limit 10 yaptık ki içinden 6 tane rahat çıksın)
           supabase.from('kampanya')
             .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url)')
-            .in('kampanya_turu', [3, 4]) // 👈 İŞTE BU SATIR İŞİ ÇÖZÜYOR
+            .in('kampanya_turu', [3, 4]) 
             .order('created_at', { ascending: false })
-            .limit(3)
+            .limit(10)
         ]);
 
         const sData = sRes.data || [];
@@ -47,8 +46,8 @@ export default function Home() {
         const yeniKData = yeniKRes.data || [];
         const ucretsizData = ucretsizRes.data || [];
 
-        // Artık filtrelemeye gerek yok, direkt veriyi basıyoruz
-        setUcretsizKampanyalar(ucretsizData);
+        // 🔥 GÜNCELLEME: Burada artık 6 tane alıyoruz!
+        setUcretsizKampanyalar(ucretsizData.slice(0, 6));
 
         // --- İSTATİSTİK VE SEO HESAPLAMALARI ---
         const benzersizKampanyalar = new Set();
@@ -157,7 +156,7 @@ export default function Home() {
           </div>
         </header>
 
-        {/* 🔥 FLAŞ ÜCRETSİZ FIRSATLAR BÖLÜMÜ (3 Sütunlu Grid Yapısı) */}
+        {/* 🔥 FLAŞ ÜCRETSİZ FIRSATLAR BÖLÜMÜ (3 Sütunlu Grid - Maksimum 6 Adet) */}
         {ucretsizKampanyalar.length > 0 && (
           <section className="mb-14 animate-in fade-in slide-in-from-bottom-4 duration-1000">
             <div className="flex items-center gap-3 mb-6 px-2">
@@ -167,8 +166,8 @@ export default function Home() {
               </span>
               <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter" style={{ fontFamily: 'Outfit' }}>Flaş Ücretsiz Fırsatlar ⚡</h3>
             </div>
-            {/* BURASI KRİTİK: MD ekranlarda 3 sütun olacak şekilde ayarlandı */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Grid Yapısı: Mobilde 1, Tablette 2, Masaüstünde 3 Sütun */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {ucretsizKampanyalar.map((k) => (
                 <Link key={k.id} href={`/kampanya/${k.slug}`} className="group relative bg-[#0D0F14] rounded-[2.5rem] p-8 border border-white/5 overflow-hidden hover:scale-[1.02] transition-all no-underline shadow-2xl shadow-blue-950/20 flex flex-col justify-between min-h-[220px]">
                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-600/20 blur-[40px] group-hover:bg-blue-600/40 transition-colors"></div>
@@ -200,7 +199,7 @@ export default function Home() {
                         <div className="relative z-10">
                             <div className="flex justify-between items-start mb-6">
                                 <span className="bg-blue-600 text-[8px] font-black text-white px-3 py-1 rounded-full uppercase tracking-widest">YENİ</span>
-                                <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center p-2 border border-slate-100">
+                                <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center p-2">
                                     <img src={k.yapan_marka_bilgisi?.logo_url} alt="" className="max-h-full object-contain" />
                                 </div>
                             </div>
@@ -249,7 +248,7 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {sektorler.map((s) => (
-              <Link href={`/sektor/${s.slug}`} key={s.id} className="group bg-white rounded-[2.5rem] overflow-hidden border border-slate-200 hover:border-blue-300 hover:shadow-2xl transition-all duration-500 no-underline">
+              <Link href={`/sektor/${s.slug}`} key={s.id} className="group bg-white rounded-[2.5rem] overflow-hidden border border-slate-200 hover:border-blue-300 hover:shadow-2xl transition-all duration-500 no-underline" title={`${s.sektor_adi} İndirim Kodları`}>
                 <div className="h-40 overflow-hidden relative">
                   <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style={{ backgroundImage: `url('${s.gorsel_url || "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1200"}')` }}></div>
                 </div>
