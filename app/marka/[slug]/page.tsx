@@ -20,26 +20,38 @@ export default function MarkaDetay({ params }: { params: Promise<{ slug: string 
 
     const veriGetir = async () => {
       setYukleniyor(true);
+
+      // Marka bilgisini çek
       const { data: mData } = await supabase
         .from('marka')
         .select('*')
         .eq('slug', resolvedParams.slug)
         .single();
-      
-      if (!mData) { setYukleniyor(false); return; }
+
+      if (!mData) {
+        setYukleniyor(false);
+        return;
+      }
       setMarka(mData);
 
+      const now = new Date().toISOString();
+
+      // Kampanyaları çek - SADECE SÜRESİ DEVAM EDENLER
       const { data: kData, error } = await supabase
         .from('kampanya')
         .select(`
           *,
           yapan_marka_bilgisi:yapan_marka ( marka_adi, logo_url ),
           tur_bilgisi:kampanya_turu ( tur_adi ) 
-        `) 
-        .or(`fayd_marka.eq.${mData.id},gecerli_sektor_id.eq.${mData.sektor_id}`) 
+        `)
+        .or(`fayd_marka.eq.${mData.id},gecerli_sektor_id.eq.${mData.sektor_id}`)
+        .or(`bitis_date.gt.${now},bitis_date.is.null`)  // ← BURADA AKTİF FİLTRE
         .order('id', { ascending: false });
 
-      if (error) console.error("Veri çekme hatası:", error);
+      if (error) {
+        console.error("Kampanya çekme hatası:", error);
+      }
+
       setKampanyalar(kData || []);
       setYukleniyor(false);
     };
@@ -69,47 +81,49 @@ export default function MarkaDetay({ params }: { params: Promise<{ slug: string 
       {/* --- ÜST HEADER ALANI --- */}
       <div className="bg-white border-b border-slate-200 pt-6 pb-12 relative overflow-hidden">
         <div className="absolute top-0 right-0 opacity-[0.02] pointer-events-none text-[180px] font-black tracking-tighter leading-none select-none uppercase">
-            {marka.marka_adi[0]}
+          {marka.marka_adi[0]}
         </div>
 
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="flex justify-between items-start mb-8">
             <button 
-                onClick={() => router.back()} 
-                className="flex items-center gap-2 text-slate-400 hover:text-blue-600 transition-colors group bg-transparent border-none cursor-pointer p-0"
+              onClick={() => router.back()} 
+              className="flex items-center gap-2 text-slate-400 hover:text-blue-600 transition-colors group bg-transparent border-none cursor-pointer p-0"
             >
-                <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
-                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-                </div>
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] leading-none">GERİ DÖN</span>
+              <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] leading-none">GERİ DÖN</span>
             </button>
 
             {marka.web_site_url && (
-                <a 
-                    href={marka.web_site_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 bg-slate-900 text-white px-5 py-2.5 rounded-2xl hover:bg-blue-600 transition-all shadow-lg group no-underline"
-                >
-                    <span className="text-[10px] font-black uppercase tracking-widest">Marka Anasayfası</span>
-                    <svg className="group-hover:translate-x-1 transition-transform" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
-                </a>
+              <a 
+                href={marka.web_site_url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 bg-slate-900 text-white px-5 py-2.5 rounded-2xl hover:bg-blue-600 transition-all shadow-lg group no-underline"
+              >
+                <span className="text-[10px] font-black uppercase tracking-widest">Marka Anasayfası</span>
+                <svg className="group-hover:translate-x-1 transition-transform" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
+              </a>
             )}
           </div>
 
           <div className="flex flex-col md:flex-row items-center gap-6">
-             <div className="w-20 h-20 bg-white text-[#0F172A] rounded-[1.8rem] shadow-xl flex items-center justify-center p-3 border border-slate-100 ring-4 ring-slate-50 overflow-hidden">
-                {marka.logo_url ? <img src={marka.logo_url} className="max-h-full object-contain" alt={marka.marka_adi} /> : <span className="text-3xl font-black text-slate-900">{marka.marka_adi?.charAt(0)}</span>}
-             </div>
-             <div className="text-center md:text-left">
-                <h2 className="text-4xl md:text-5xl font-[900] text-slate-900 tracking-tighter mb-2" style={{ fontFamily: 'Outfit' }}>{marka.marka_adi}</h2>
-                <div className="inline-flex items-center gap-2.5 bg-blue-600 text-white px-4 py-1.5 rounded-xl shadow-md">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                    <p className="font-black text-[10px] uppercase tracking-widest leading-none">
-                        {kampanyalar.length} AKTİF FIRSAT
-                    </p>
-                </div>
-             </div>
+            <div className="w-20 h-20 bg-white text-[#0F172A] rounded-[1.8rem] shadow-xl flex items-center justify-center p-3 border border-slate-100 ring-4 ring-slate-50 overflow-hidden">
+              {marka.logo_url ? <img src={marka.logo_url} className="max-h-full object-contain" alt={marka.marka_adi} /> : <span className="text-3xl font-black text-slate-900">{marka.marka_adi?.charAt(0)}</span>}
+            </div>
+            <div className="text-center md:text-left">
+              <h2 className="text-4xl md:text-5xl font-[900] text-slate-900 tracking-tighter mb-2" style={{ fontFamily: 'Outfit' }}>
+                {marka.marka_adi}
+              </h2>
+              <div className="inline-flex items-center gap-2.5 bg-blue-600 text-white px-4 py-1.5 rounded-xl shadow-md">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                <p className="font-black text-[10px] uppercase tracking-widest leading-none">
+                  {kampanyalar.length} AKTİF FIRSAT
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -162,10 +176,9 @@ export default function MarkaDetay({ params }: { params: Promise<{ slug: string 
                       </div>
                   </div>
 
-                  {/* --- BUTON ALANI GÜNCELLENDİ --- */}
+                  {/* --- BUTON ALANI --- */}
                   <div className="bg-[#1e293b]/30 lg:w-64 border-t lg:border-t-0 lg:border-l border-slate-800 p-8 flex flex-col items-center justify-center gap-3">
                     
-                    {/* 1. MAĞAZA BUTONU (Eğer Link Varsa) */}
                     {marka.affiliate_link && (
                         <a 
                             href={marka.affiliate_link}
@@ -177,7 +190,6 @@ export default function MarkaDetay({ params }: { params: Promise<{ slug: string 
                         </a>
                     )}
 
-                    {/* 2. DETAY BUTONU (Her Zaman Var) */}
                     <Link 
                         href={`/kampanya/${k.slug}`} 
                         className="w-full bg-white text-[#0F172A] py-4 rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.15em] shadow-xl hover:bg-blue-600 hover:text-white transition-all transform active:scale-95 text-center no-underline"
