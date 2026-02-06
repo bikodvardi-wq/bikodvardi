@@ -10,16 +10,19 @@ export default function Home() {
   const [populerMarkalar, setPopulerMarkalar] = useState<any[]>([]);
   const [enYeniKampanyalar, setEnYeniKampanyalar] = useState<any[]>([]);
   const [ucretsizKampanyalar, setUcretsizKampanyalar] = useState<any[]>([]);
-  const [tumKampanyalar, setTumKampanyalar] = useState<any[]>([]);
+  const [tumAktifKampanyalar, setTumAktifKampanyalar] = useState<any[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [aramaTerimi, setAramaTerimi] = useState("");
   const [aramaSonuclari, setAramaSonuclari] = useState<any[]>([]);
-  const [stats, setStats] = useState({ toplam: 0, aktif: 0 });
+  
+  // İstatistikler state'i
+  const [stats, setStats] = useState({ aktif: 0, toplam: 0, marka: 0 });
 
   const [seciliSektor, setSeciliSektor] = useState<string>("");
   const [seciliTur, setSeciliTur] = useState<string>("");
 
   useEffect(() => {
+    // Font yükleme
     const link = document.createElement('link');
     link.href = 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap';
     link.rel = 'stylesheet';
@@ -31,69 +34,96 @@ export default function Home() {
 
         const now = new Date().toISOString();
 
-        const [sRes, tRes, mRes, kRes, yeniKRes, ucretsizRes, tumKRes] = await Promise.all([
+        const [sRes, tRes, mRes, yeniKRes, ucretsizRes, tumAktifRes, tumToplamRes, markaCountRes] = await Promise.all([
+          // 1. Sektörler
           supabase.from('sektor').select('id, sektor_adi, slug, gorsel_url'),
+          
+          // 2. Kampanya Türleri
           supabase.from('kampanya_turu').select('id, tur_adi'),
+          
+          // 3. Markalar
           supabase.from('marka').select('id, marka_adi, slug, logo_url, sektor_id, ek_sektor_idler'),
-          supabase.from('kampanya').select('id, fayd_marka, gecerli_sektor_id, kampanya_turu, yapan_marka'),
+          
+          // 4. En Yeniler (Slider için sadece 10 tane yeterli)
           supabase.from('kampanya')
             .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url, sektor_id)')
             .or(`bitis_date.gt.${now},bitis_date.is.null`)
             .order('created_at', { ascending: false })
             .limit(10),
+            
+          // 5. Ücretsizler (Slider için 10 tane yeterli)
           supabase.from('kampanya')
             .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url, sektor_id)')
             .in('kampanya_turu', [3, 4])
             .or(`bitis_date.gt.${now},bitis_date.is.null`)
             .order('created_at', { ascending: false })
             .limit(10),
+
+          // 6. TÜM AKTİF KAMPANYALAR (Sayaçlar ve Filtreleme İçin)
+          // BURADAKİ LİMİTİ ARTIRDIK: 100 -> 1000
           supabase.from('kampanya')
             .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url, sektor_id), bitis_date')
             .or(`bitis_date.gt.${now},bitis_date.is.null`)
             .order('created_at', { ascending: false })
-            .limit(100),
+            .limit(1000), 
+
+          // 7. Toplam Kampanya Sayısı (Count)
+          supabase.from('kampanya').select('id', { count: 'exact', head: true }),
+          
+          // 8. Toplam Marka Sayısı (Count)
+          supabase.from('marka').select('id', { count: 'exact', head: true })
         ]);
 
         const sData = sRes.data || [];
         const tData = tRes.data || [];
         const mData = mRes.data || [];
-        const kData = kRes.data || [];
+        const tumAktifData = tumAktifRes.data || [];
         const yeniKData = yeniKRes.data || [];
         const ucretsizData = ucretsizRes.data || [];
-        const tumData = tumKRes.data || [];
 
         setUcretsizKampanyalar(ucretsizData.slice(0, 6));
         setEnYeniKampanyalar(yeniKData.slice(0, 6));
-        setTumKampanyalar(tumData);
+        setTumAktifKampanyalar(tumAktifData);
         setKampanyaTurleri(tData);
 
-        // Sektör fırsat sayısı hesaplama (sadece aktif kampanyalar üzerinden)
-        const benzersizKampanyalar = new Set();
+        // SEKTÖR SAYAÇ HESABI
         const siraliSektorler = sData.map(sektor => {
+          // Bu sektöre ait markaları bul
           const sektoreAitMarkalar = mData.filter(m => 
             String(m.sektor_id) === String(sektor.id) || 
-            (m.ek_sektor_idler && m.ek_sektor_idler.some((id:any) => String(id) === String(sektor.id)))
+            (m.ek_sektor_idler && m.ek_sektor_idler.some((id: any) => String(id) === String(sektor.id)))
           ).map(m => m.id);
 
-          const sektorKampanyaSet = new Set();
-          tumData.forEach(k => {  // tumData zaten sadece aktif olanları içeriyor
-            if ((k.fayd_marka && sektoreAitMarkalar.includes(k.fayd_marka)) || 
-                (k.gecerli_sektor_id && String(k.gecerli_sektor_id) === String(sektor.id))) {
-              sektorKampanyaSet.add(k.id);
-              benzersizKampanyalar.add(k.id);
+          const aktifKampanyaSet = new Set();
+          tumAktifData.forEach(k => {
+            // 1. Bu markanın kampanyası mı?
+            if (k.fayd_marka && sektoreAitMarkalar.includes(k.fayd_marka)) {
+              aktifKampanyaSet.add(k.id);
+            }
+            // 2. Sektör geneli kampanya mı?
+            if (!k.fayd_marka && String(k.gecerli_sektor_id) === String(sektor.id)) {
+              aktifKampanyaSet.add(k.id);
             }
           });
-          return { ...sektor, firsatSayisi: sektorKampanyaSet.size };
+
+          return { ...sektor, firsatSayisi: aktifKampanyaSet.size };
         }).sort((a, b) => b.firsatSayisi - a.firsatSayisi);
 
+        // Marka Fırsat Sayıları
         const markalarFirsatli = mData.map(m => ({
           ...m,
-          firsatSayisi: tumData.filter(k => String(k.fayd_marka) === String(m.id)).length
+          firsatSayisi: tumAktifData.filter(k => String(k.fayd_marka) === String(m.id)).length
         })).sort((a, b) => b.firsatSayisi - a.firsatSayisi).slice(0, 12);
 
         setSektorler(siraliSektorler);
         setPopulerMarkalar(markalarFirsatli);
-        setStats({ toplam: tumData.length, aktif: tumData.length });
+
+        // İstatistikleri Ayarla
+        setStats({ 
+          aktif: tumAktifData.length, 
+          toplam: tumToplamRes.count || 0,
+          marka: markaCountRes.count || 0 
+        });
 
       } catch (err) {
         console.error("Veri hatası:", err);
@@ -115,7 +145,7 @@ export default function Home() {
   };
 
   // Otomatik filtreleme
-  const filtrelenmisKampanyalar = tumKampanyalar
+  const filtrelenmisKampanyalar = tumAktifKampanyalar
     .filter(k => {
       let uyuyor = true;
       if (seciliSektor) {
@@ -159,13 +189,26 @@ export default function Home() {
 
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <header className="text-center pt-10 md:pt-16 pb-12 max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full mb-6 shadow-sm">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-            </span>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{stats.toplam} Aktif Kod Yayında</span>
+          
+          {/* SAYAÇLARI GÖRSELLEŞTİRDİM */}
+          <div className="flex justify-center gap-4 mb-8">
+             <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                  {stats.toplam}+ KAMPANYA
+                </span>
+             </div>
+             <div className="hidden md:inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
+                <span className="text-blue-500 font-black text-xs">●</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                  {stats.marka}+ MARKA
+                </span>
+             </div>
           </div>
+
           <h2 className="text-5xl md:text-7xl font-[900] tracking-tight text-slate-900 mb-8" style={{ fontFamily: 'Outfit', lineHeight: 1.1 }}>
             İndirim kodu arama, <br/> 
             <span className="text-blue-600 italic font-light">bi'kod bul.</span>
