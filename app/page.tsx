@@ -60,14 +60,14 @@ export default function Home() {
             .limit(10),
 
           // 6. TÜM AKTİF KAMPANYALAR (Sayaçlar ve Filtreleme İçin)
-          // BURADAKİ LİMİTİ ARTIRDIK: 100 -> 1000
+          // Limit 1000'de kalarak tüm aktifleri çekiyoruz
           supabase.from('kampanya')
             .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url, sektor_id), bitis_date')
             .or(`bitis_date.gt.${now},bitis_date.is.null`)
             .order('created_at', { ascending: false })
             .limit(1000), 
 
-          // 7. Toplam Kampanya Sayısı (Count)
+          // 7. Toplam Kampanya Sayısı (Tarihçe dahil tüm veritabanı)
           supabase.from('kampanya').select('id', { count: 'exact', head: true }),
           
           // 8. Toplam Marka Sayısı (Count)
@@ -88,7 +88,6 @@ export default function Home() {
 
         // SEKTÖR SAYAÇ HESABI
         const siraliSektorler = sData.map(sektor => {
-          // Bu sektöre ait markaları bul
           const sektoreAitMarkalar = mData.filter(m => 
             String(m.sektor_id) === String(sektor.id) || 
             (m.ek_sektor_idler && m.ek_sektor_idler.some((id: any) => String(id) === String(sektor.id)))
@@ -96,11 +95,9 @@ export default function Home() {
 
           const aktifKampanyaSet = new Set();
           tumAktifData.forEach(k => {
-            // 1. Bu markanın kampanyası mı?
             if (k.fayd_marka && sektoreAitMarkalar.includes(k.fayd_marka)) {
               aktifKampanyaSet.add(k.id);
             }
-            // 2. Sektör geneli kampanya mı?
             if (!k.fayd_marka && String(k.gecerli_sektor_id) === String(sektor.id)) {
               aktifKampanyaSet.add(k.id);
             }
@@ -120,9 +117,9 @@ export default function Home() {
 
         // İstatistikleri Ayarla
         setStats({ 
-          aktif: tumAktifData.length, 
-          toplam: tumToplamRes.count || 0,
-          marka: markaCountRes.count || 0 
+          aktif: tumAktifData.length, // Şu an yayında olanlar (373 gibi)
+          toplam: tumToplamRes.count || 0, // Tarihçe dahil hepsi (649 gibi)
+          marka: markaCountRes.count || 0 // Marka sayısı
         });
 
       } catch (err) {
@@ -190,17 +187,28 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <header className="text-center pt-10 md:pt-16 pb-12 max-w-4xl mx-auto">
           
-          {/* SAYAÇLARI GÖRSELLEŞTİRDİM */}
-          <div className="flex justify-center gap-4 mb-8">
+          {/* SAYAÇLARI GÜNCELLEDİK: TOPLAM, AKTİF VE MARKA OLARAK 3'E AYIRDIK */}
+          <div className="flex flex-wrap justify-center gap-3 mb-8">
+             {/* 1. TOPLAM KAMPANYA (Tarihçe) */}
+             <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
+                <span className="text-orange-500 text-xs">📦</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                  {stats.toplam} TOPLAM KOD
+                </span>
+             </div>
+
+             {/* 2. AKTİF KAMPANYA (Canlı) */}
              <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                  {stats.toplam}+ KAMPANYA
+                  {stats.aktif} AKTİF KAMPANYA
                 </span>
              </div>
+
+             {/* 3. MARKA SAYISI */}
              <div className="hidden md:inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
                 <span className="text-blue-500 font-black text-xs">●</span>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
