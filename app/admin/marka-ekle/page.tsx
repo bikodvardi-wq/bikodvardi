@@ -19,7 +19,9 @@ export default function MarkaEkle() {
     marka_adi: '',
     logo_url: '',
     sektor_id: '',
-    ek_sektor_idler: [] as string[]
+    ek_sektor_idler: [] as string[],
+    sitemap_url: '',    // YENİ
+    sitemap_filter: ''  // YENİ
   });
 
   useEffect(() => {
@@ -72,55 +74,103 @@ export default function MarkaEkle() {
       logo_url: form.logo_url,
       sektor_id: form.sektor_id,
       ek_sektor_idler: form.ek_sektor_idler.length > 0 ? form.ek_sektor_idler : null,
-      slug: slugOlustur(form.marka_adi)
+      slug: slugOlustur(form.marka_adi),
+      // YENİ ALANLAR EKLENDİ
+      sitemap_url: form.sitemap_url || null, 
+      sitemap_filter: form.sitemap_filter || null
     }]);
 
-    if (error) { alert(error.message); setYukleniyor(false); }
-    else { alert('✅ Marka Eklendi!'); router.push('/admin'); }
+    if (error) { 
+        alert(error.message); 
+        setYukleniyor(false); 
+    } else { 
+        alert('✅ Marka Eklendi!'); 
+        router.push('/admin'); 
+    }
   };
 
   return (
     <div className="max-w-2xl mx-auto pb-20">
       <h2 className="text-3xl font-black mb-8 tracking-tight" style={{ fontFamily: 'Outfit' }}>Yeni Marka Tanımla</h2>
       
-      <form onSubmit={kaydet} className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100 space-y-6">
+      <form onSubmit={kaydet} className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100 space-y-8">
         
-        {/* MARKA ADI GİRİŞİ */}
-        <div className="relative">
-          <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Marka Adı</label>
-          <input 
-            required 
-            type="text" 
-            placeholder="Örn: Trendyol"
-            className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl font-bold text-lg focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none" 
-            value={form.marka_adi} 
-            onChange={(e) => isimKontrol(e.target.value)} 
-          />
-          
-          {/* CANLI KONTROL SONUÇLARI */}
-          {benzerMarkalar.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-orange-100 rounded-2xl shadow-xl z-10 overflow-hidden animate-in fade-in slide-in-from-top-2">
-                <div className="bg-orange-50 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-orange-600">
-                    ⚠️ Sistemde Benzer Kayıtlar Var:
-                </div>
-                <div className="max-h-48 overflow-y-auto">
-                    {benzerMarkalar.map(m => (
-                        <div key={m.id} className="flex items-center gap-3 p-3 hover:bg-slate-50 border-b border-slate-50 last:border-0">
-                            <div className="w-8 h-8 bg-white border rounded-lg flex items-center justify-center p-1">
-                                {m.logo_url ? <img src={m.logo_url} className="max-h-full object-contain" /> : "?"}
+        {/* --- TEMEL BİLGİLER --- */}
+        <div className="space-y-6">
+            {/* MARKA ADI GİRİŞİ */}
+            <div className="relative">
+            <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Marka Adı</label>
+            <input 
+                required 
+                type="text" 
+                placeholder="Örn: Trendyol"
+                className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl font-bold text-lg focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all outline-none" 
+                value={form.marka_adi} 
+                onChange={(e) => isimKontrol(e.target.value)} 
+            />
+            
+            {/* CANLI KONTROL SONUÇLARI */}
+            {benzerMarkalar.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-orange-100 rounded-2xl shadow-xl z-10 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                    <div className="bg-orange-50 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-orange-600">
+                        ⚠️ Sistemde Benzer Kayıtlar Var:
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                        {benzerMarkalar.map(m => (
+                            <div key={m.id} className="flex items-center gap-3 p-3 hover:bg-slate-50 border-b border-slate-50 last:border-0">
+                                <div className="w-8 h-8 bg-white border rounded-lg flex items-center justify-center p-1">
+                                    {m.logo_url ? <img src={m.logo_url} className="max-h-full object-contain" /> : "?"}
+                                </div>
+                                <span className="font-bold text-slate-700">{m.marka_adi}</span>
                             </div>
-                            <span className="font-bold text-slate-700">{m.marka_adi}</span>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
+            )}
             </div>
-          )}
+
+            {/* LOGO URL */}
+            <div>
+            <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Logo URL (PNG/SVG)</label>
+            <input type="text" className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl" value={form.logo_url} onChange={(e) => setForm({...form, logo_url: e.target.value})} />
+            </div>
         </div>
 
-        {/* LOGO URL */}
-        <div>
-          <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Logo URL (PNG/SVG)</label>
-          <input type="text" className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl" value={form.logo_url} onChange={(e) => setForm({...form, logo_url: e.target.value})} />
+        {/* --- OTOMASYON BÖLÜMÜ (YENİ) --- */}
+        <div className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100 space-y-5">
+            <div className="flex items-center gap-2 mb-2">
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                <h3 className="text-xs font-black uppercase tracking-widest text-blue-600">Otomasyon / Radar Ayarları</h3>
+            </div>
+
+            {/* SITEMAP URL */}
+            <div>
+                <label className="block text-xs font-bold text-slate-500 mb-2">Sitemap XML Linki</label>
+                <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg">🔗</span>
+                    <input 
+                        type="url" 
+                        placeholder="https://www.marka.com/sitemap.xml" 
+                        className="w-full bg-white border border-blue-200 p-4 pl-12 rounded-xl text-sm focus:border-blue-500 outline-none" 
+                        value={form.sitemap_url} 
+                        onChange={(e) => setForm({...form, sitemap_url: e.target.value})} 
+                    />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1.5 font-medium ml-1">Sistem bu adresi tarayarak yeni kampanya linklerini bulur.</p>
+            </div>
+
+            {/* SITEMAP FILTRE */}
+            <div>
+                <label className="block text-xs font-bold text-slate-500 mb-2">Filtre Kelimesi</label>
+                <input 
+                    type="text" 
+                    placeholder="Örn: kampanyalar, firsatlar (Boş bırakılabilir)" 
+                    className="w-full bg-white border border-blue-200 p-4 rounded-xl text-sm focus:border-blue-500 outline-none" 
+                    value={form.sitemap_filter} 
+                    onChange={(e) => setForm({...form, sitemap_filter: e.target.value})} 
+                />
+                <p className="text-[10px] text-slate-400 mt-1.5 font-medium ml-1">XML içindeki linklerden sadece içinde bu kelime geçenleri alır.</p>
+            </div>
         </div>
 
         {/* ANA SEKTÖR */}
@@ -132,8 +182,8 @@ export default function MarkaEkle() {
           </select>
         </div>
 
-        <button disabled={yukleniyor} className="w-full bg-black text-white p-5 rounded-2xl font-black text-lg hover:bg-blue-600 transition-all">
-          {yukleniyor ? 'Kaydediliyor...' : 'Markayı Oluştur'}
+        <button disabled={yukleniyor} className="w-full bg-black text-white p-5 rounded-2xl font-black text-lg hover:bg-blue-600 transition-all shadow-xl shadow-blue-900/10">
+          {yukleniyor ? 'Kaydediliyor...' : 'Markayı Oluştur 🚀'}
         </button>
       </form>
     </div>
