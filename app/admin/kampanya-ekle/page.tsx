@@ -23,6 +23,21 @@ export default function KampanyaEkle() {
     kampanya_turu: ''
   });
 
+  // --- 🔥 RADAR'DAN GELEN VERİLERİ YAKALAMA (EKLEME) ---
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const gelenUrl = params.get('url');
+    const gelenMarkaId = params.get('markaId');
+
+    if (gelenUrl || gelenMarkaId) {
+      setForm(prev => ({
+        ...prev,
+        link: gelenUrl || prev.link,
+        fayd_marka: gelenMarkaId || prev.fayd_marka
+      }));
+    }
+  }, [markalar]); // Markalar listesi yüklendiğinde marka ID'sini eşleştirebilmesi için
+
   useEffect(() => {
     const verileriGetir = async () => {
       const { data: mData } = await supabase.from('marka').select('id, marka_adi, logo_url').order('marka_adi');
@@ -35,7 +50,6 @@ export default function KampanyaEkle() {
     verileriGetir();
   }, []);
 
-  // --- 🔥 YENİ: FORMU SIFIRLAMA FONKSİYONU ---
   const formuSifirla = () => {
     setForm({
       baslik: '',
@@ -125,11 +139,9 @@ export default function KampanyaEkle() {
         alert('Hata: ' + error.message); 
         setYukleniyor(false); 
     } else {
-        // --- ✅ DEĞİŞİKLİK BURADA: Yönlendirme yerine formu temizle ---
         alert('✅ Başarıyla Yayınlandı! Yeni kampanya girebilirsin.');
         formuSifirla();
         setYukleniyor(false);
-        // Artık router.push('/admin') yapmıyoruz.
     }
   };
 
@@ -216,6 +228,7 @@ export default function KampanyaEkle() {
             </button>
         </form>
 
+        {/* --- ÖNİZLEME ALANI (DOKUNULMADI) --- */}
         <div className="hidden lg:block relative">
             <div className="sticky top-6">
                 <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Sitede Böyle Görünecek</h3>

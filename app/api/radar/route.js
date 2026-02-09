@@ -11,44 +11,58 @@ export async function POST(request) {
 
     // 1. SITEMAP XML VERİSİNİ ÇEK
     console.log(`📡 Taranıyor: ${sitemap_url}`);
-    const xmlResponse = await fetch(sitemap_url);
-    if (!xmlResponse.ok) throw new Error('Sitemap dosyasına ulaşılamadı');
+    const xmlResponse = await fetch(sitemap_url, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+    });
+
+    if (!xmlResponse.ok) throw new Error(`Sitemap dosyasına ulaşılamadı. Durum: ${xmlResponse.status}`);
     const xmlText = await xmlResponse.text();
 
     // 2. XML'İ JSON'A ÇEVİR
     const result = await parseStringPromise(xmlText);
 
     // 3. LİNKLERİ AYIKLA
-    // Genelde sitemap yapısı: <urlset><url><loc>LINK</loc></url></urlset> şeklindedir.
     let tumLinkler = [];
     
-    if (result.urlset && result.urlset.url) {
-      tumLinkler = result.urlset.url.map(u => u.loc[0]);
-    } else if (result.sitemapindex && result.sitemapindex.sitemap) {
-      // Eğer bu bir sitemap indeksi ise (içinde başka sitemapler varsa)
+    if (result?.urlset?.url) {
+      tumLinkler = result.urlset.url
+        .map(u => u.loc ? u.loc[0] : null)
+        .filter(Boolean);
+    } 
+    else if (result?.sitemapindex?.sitemap) {
+      const altSitemapler = result.sitemapindex.sitemap
+        .map(s => s.loc ? s.loc[0] : null)
+        .filter(Boolean);
+
       return Response.json({ 
-        hata: 'Bu bir Sitemap İndeksi! Lütfen alt sitemaplerden birinin linkini girin (Örn: post-sitemap.xml).' 
+        hata: 'Bu bir Sitemap İndeksi!',
+        detay: 'Bu dosya bir dizindir. Lütfen marka ayarlarından aşağıdaki alt sitemap linklerinden birini girin:',
+        linkler: altSitemapler
       }, { status: 400 });
+    } else {
+        throw new Error('Tanınmayan sitemap formatı veya boş dosya.');
     }
 
-    // 4. FİLTRELEME (Sadece kampanya linklerini al)
+    // 4. FİLTRELEME
     const filtreKelimesi = sitemap_filter ? sitemap_filter.toLowerCase() : '';
-    
     const adayLinkler = tumLinkler.filter(link => {
-      // Filtre varsa onu kontrol et, yoksa hepsini al
       if (filtreKelimesi && !link.toLowerCase().includes(filtreKelimesi)) return false;
       return true;
     });
 
-    // 5. BİZDE ZATEN OLANLARI BUL
-    const { data: mevcutKampanyalar } = await supabase
+    // 5. BİZDE ZATEN OLANLARI BUL (SÜTUN ADI 'link' OLARAK DÜZELTİLDİ)
+    const { data: mevcutKampanyalar, error: dbError } = await supabase
       .from('kampanya')
-      .select('kampanya_url')
+      .select('link') // <--- BURASI DÜZELDİ
       .eq('fayd_marka', marka_id);
 
-    const bizdekiLinkler = mevcutKampanyalar.map(k => k.kampanya_url);
+    if (dbError) throw dbError;
 
-    // 6. KARŞILAŞTIRMA: Onlarda olup bizde olmayanları bul
+    const bizdekiLinkler = mevcutKampanyalar?.map(k => k.link) || []; // <--- BURASI DÜZELDİ
+
+    // 6. KARŞILAŞTIRMA
     const yeniFirsatlar = adayLinkler.filter(link => !bizdekiLinkler.includes(link));
 
     return Response.json({
