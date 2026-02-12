@@ -9,7 +9,6 @@ export default function RadarPaneli() {
   const [taramaSonucu, setTaramaSonucu] = useState(null);
   const [yukleniyor, setYukleniyor] = useState(false);
 
-  // Sadece Sitemap URL'i tanımlanmış markaları getir
   useEffect(() => {
     async function getir() {
       const { data } = await supabase
@@ -43,7 +42,6 @@ export default function RadarPaneli() {
       const data = await res.json();
       
       if (data.hata) {
-        // Sitemap İndeksi uyarısı
         alert(`${data.hata}\n\nÖneri: ${data.detay}\n\nİlk link: ${data.linkler?.[0]}`);
       } else if (data.error) {
         alert("Hata: " + data.error);
@@ -51,7 +49,7 @@ export default function RadarPaneli() {
         setTaramaSonucu(data);
       }
     } catch (err) {
-      alert("Bir şeyler ters gitti. Sunucu bağlantısını kontrol edin.");
+      alert("Bir şeyler ters gitti. Sunucu bağlantısını veya API route'u kontrol edin.");
     } finally {
       setYukleniyor(false);
     }
@@ -153,18 +151,44 @@ export default function RadarPaneli() {
                               {link}
                             </div>
                             <div style={{ display: 'flex', gap: '10px' }}>
-                                <a href={link} target="_blank" rel="noreferrer" style={{ padding: '8px 15px', background: '#f1f5f9', color: '#475569', textDecoration: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold' }}>
-                                    İncele
-                                </a>
-                                <button 
-                                    onClick={() => {
-                                        // 404 Hatasını çözen yönlendirme:
-                                        window.open(`/admin/kampanya-ekle?url=${encodeURIComponent(link)}&markaId=${seciliMarka.id}`, '_blank');
-                                    }}
-                                    style={{ padding: '8px 15px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}
-                                >
-                                    + SİTEYE EKLE
-                                </button>
+                              <a href={link} target="_blank" rel="noreferrer" style={{ padding: '8px 15px', background: '#f1f5f9', color: '#475569', textDecoration: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold' }}>
+                                İncele
+                              </a>
+                              <button 
+                                onClick={async () => {
+                                  const onay = confirm(`Bu kampanyayı hızlı ekleyelim mi?\n\nLink: ${link}\nMarka: ${seciliMarka.marka_adi}`);
+                                  if (!onay) return;
+
+                                  try {
+                                    const res = await fetch('/api/kampanya/hizli-ekle', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        link: link,
+                                        markaId: seciliMarka.id
+                                      })
+                                    });
+
+                                    const data = await res.json();
+
+                                    if (data.success) {
+                                      alert(`✅ Eklendi! Başlık: ${data.baslik}`);
+                                      // Listeden kaldır
+                                      setTaramaSonucu(prev => ({
+                                        ...prev,
+                                        yeniLinkler: prev.yeniLinkler.filter(l => l !== link)
+                                      }));
+                                    } else {
+                                      alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+                                    }
+                                  } catch (err) {
+                                    alert('Sunucu bağlantı hatası');
+                                  }
+                                }}
+                                style={{ padding: '8px 15px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}
+                              >
+                                + SİTEYE EKLE
+                              </button>
                             </div>
                           </div>
                         ))}
@@ -180,8 +204,8 @@ export default function RadarPaneli() {
 
               {!taramaSonucu && !yukleniyor && (
                 <div style={{ textAlign: 'center', padding: '60px', color: '#cbd5e1' }}>
-                    <div style={{ fontSize: '40px', marginBottom: '10px' }}>📡</div>
-                    <p>Taramayı başlatmak için butona basın.</p>
+                  <div style={{ fontSize: '40px', marginBottom: '10px' }}>📡</div>
+                  <p>Taramayı başlatmak için butona basın.</p>
                 </div>
               )}
 

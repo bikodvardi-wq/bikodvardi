@@ -23,7 +23,7 @@ export default function KampanyaEkle() {
     kampanya_turu: ''
   });
 
-  // --- 🔥 RADAR'DAN GELEN VERİLERİ YAKALAMA (EKLEME) ---
+  // --- 🔥 RADAR'DAN GELEN VERİLERİ YAKALAMA ---
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const gelenUrl = params.get('url');
@@ -36,7 +36,7 @@ export default function KampanyaEkle() {
         fayd_marka: gelenMarkaId || prev.fayd_marka
       }));
     }
-  }, [markalar]); // Markalar listesi yüklendiğinde marka ID'sini eşleştirebilmesi için
+  }, [markalar]); // Markalar yüklendiğinde markaId'yi doğru eşleştirmek için
 
   useEffect(() => {
     const verileriGetir = async () => {
@@ -50,16 +50,24 @@ export default function KampanyaEkle() {
     verileriGetir();
   }, []);
 
+  // --- 🔥 biKodVardı Editörü GEM'İ İÇİN PROMPT KOPYALAYICI ---
+  const kopyalaGeminiPrompt = () => {
+    const markaAdi = markalar.find(m => m.id === form.fayd_marka)?.marka_adi || "İlgili Marka";
+    
+    const promptText = `BiKodVardı Editörü, iş başına! 🚀 
+Lütfen şu kampanya linkini senin özel talimatlarına göre analiz et: ${form.link}
+
+Analiz ederken "fayd_marka" olarak "${markaAdi}" bilgisini kullan. 
+
+Bana sadece senin formatındaki JSON çıktısını ver, siyah kutuya yapıştıracağım.`;
+
+    navigator.clipboard.writeText(promptText);
+    alert("🚀 Gem için komut kopyalandı! Şimdi biKodVardı Editörü'ne yapıştırabilirsin.");
+  };
+
   const formuSifirla = () => {
     setForm({
-      baslik: '',
-      detay: '',
-      link: '',
-      bitis_date: '',
-      yapan_marka: '',
-      fayd_marka: '',
-      gecerli_sektor_id: '',
-      kampanya_turu: ''
+      baslik: '', detay: '', link: '', bitis_date: '', yapan_marka: '', fayd_marka: '', gecerli_sektor_id: '', kampanya_turu: ''
     });
   };
 
@@ -163,7 +171,16 @@ export default function KampanyaEkle() {
             <div>
                 <div className="flex justify-between items-center mb-2">
                     <label className="block text-[10px] font-black uppercase tracking-widest text-blue-600">✨ GEMINI JSON ALANI</label>
-                    <button type="button" onClick={formuSifirla} className="text-[9px] bg-slate-100 text-slate-500 px-2 py-1 rounded font-bold hover:bg-red-50 hover:text-red-600 transition-colors">FORMU TEMİZLE</button>
+                    <div className="flex gap-2">
+                        <button 
+                            type="button" 
+                            onClick={kopyalaGeminiPrompt}
+                            className="text-[9px] bg-blue-600 text-white px-3 py-1 rounded font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
+                        >
+                            📋 PROMPTU KOPYALA
+                        </button>
+                        <button type="button" onClick={formuSifirla} className="text-[9px] bg-slate-100 text-slate-500 px-2 py-1 rounded font-bold hover:bg-red-50 hover:text-red-600 transition-colors">FORMU TEMİZLE</button>
+                    </div>
                 </div>
                 <textarea rows={12} placeholder="{ 'baslik': '...', 'yapan_marka': '...', 'html_kodu': '...' }" 
                   className="w-full bg-[#1e1e1e] text-green-400 border-2 border-slate-800 p-4 rounded-xl font-mono text-xs outline-none focus:border-blue-500 shadow-inner resize-none"
@@ -228,7 +245,6 @@ export default function KampanyaEkle() {
             </button>
         </form>
 
-        {/* --- ÖNİZLEME ALANI (DOKUNULMADI) --- */}
         <div className="hidden lg:block relative">
             <div className="sticky top-6">
                 <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Sitede Böyle Görünecek</h3>
