@@ -7,20 +7,34 @@ export async function GET(request) {
   if (!url) return new Response(JSON.stringify({ error: 'URL yok' }), { status: 400 });
 
   try {
-    // Veritabanında linki arıyoruz
+    // Linki ve Bitiş Tarihini çekiyoruz
     const { data, error } = await supabase
       .from('kampanya')
-      .select('id')
+      .select('id, bitis_date') // Tarihi de istiyoruz
       .eq('link', url)
       .maybeSingle();
 
     if (error) throw error;
 
-    // 🔥 Dış dünyadan (Chrome eklentisinden) erişim izni veriyoruz
-    return new Response(JSON.stringify({ kayitli: !!data }), {
+    let durum = 'yok'; // Varsayılan: Veritabanında yok
+
+    if (data) {
+      // Bugünün tarihini al (Saat farkını yok sayıp sadece günü kıyaslamak için)
+      const bugun = new Date().toISOString().split('T')[0];
+      
+      // Eğer bitiş tarihi bugünden küçükse 'bitmis', değilse 'aktif'
+      if (data.bitis_date && data.bitis_date < bugun) {
+        durum = 'bitmis';
+      } else {
+        durum = 'aktif';
+      }
+    }
+
+    // Cevabı gönderiyoruz
+    return new Response(JSON.stringify({ durum: durum }), {
       status: 200,
       headers: {
-        'Access-Control-Allow-Origin': '*', 
+        'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Content-Type': 'application/json',
       },
@@ -31,7 +45,6 @@ export async function GET(request) {
   }
 }
 
-// Tarayıcının ön kontrolü için gerekli
 export async function OPTIONS() {
   return new Response(null, {
     status: 204,
