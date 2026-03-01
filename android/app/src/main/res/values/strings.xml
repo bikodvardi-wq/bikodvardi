@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BiKodVardi</string>
+    <string name="title_activity_main">BiKodVardi</string>
+    <string name="package_name">com.bikodvardi.app</string>
+    <string name="custom_url_scheme">com.bikodvardi.app</string>
+</resources>
