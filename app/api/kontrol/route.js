@@ -7,25 +7,23 @@ export async function GET(request) {
   if (!url) return new Response(JSON.stringify({ error: 'URL yok' }), { status: 400 });
 
   try {
-    // Linki, Bitiş Tarihini ve ID'yi çekiyoruz
+    // 🔥 DEĞİŞİKLİK BURADA: 'id' yerine 'slug' bilgisini de veritabanından çekiyoruz
     const { data, error } = await supabase
       .from('kampanya')
-      .select('id, bitis_date') 
+      .select('id, bitis_date, slug') 
       .eq('link', url)
       .maybeSingle();
 
     if (error) throw error;
 
-    let durum = 'yok'; // Varsayılan: Veritabanında yok
-    let kampanyaId = null; // Eklentiye göndereceğimiz ID
+    let durum = 'yok'; 
+    let kampanyaSlug = null; // Artık slug tutuyoruz
 
     if (data) {
-      kampanyaId = data.id; // ID'yi yakaladık!
+      kampanyaSlug = data.slug; // 🔥 DEĞİŞİKLİK: Veritabanından gelen slug'ı aldık
       
-      // Bugünün tarihini al (Saat farkını yok sayıp sadece günü kıyaslamak için)
       const bugun = new Date().toISOString().split('T')[0];
       
-      // Eğer bitiş tarihi bugünden küçükse 'bitmis', değilse 'aktif'
       if (data.bitis_date && data.bitis_date < bugun) {
         durum = 'bitmis';
       } else {
@@ -33,8 +31,8 @@ export async function GET(request) {
       }
     }
 
-    // Cevabı gönderiyoruz (Artık ID bilgisi de gidiyor!)
-    return new Response(JSON.stringify({ durum: durum, id: kampanyaId }), {
+    // 🔥 DEĞİŞİKLİK: Eklentiye cevap olarak 'slug' gönderiyoruz
+    return new Response(JSON.stringify({ durum: durum, slug: kampanyaSlug }), {
       status: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
