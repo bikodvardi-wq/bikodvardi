@@ -7,18 +7,21 @@ export async function GET(request) {
   if (!url) return new Response(JSON.stringify({ error: 'URL yok' }), { status: 400 });
 
   try {
-    // Linki ve Bitiş Tarihini çekiyoruz
+    // Linki, Bitiş Tarihini ve ID'yi çekiyoruz
     const { data, error } = await supabase
       .from('kampanya')
-      .select('id, bitis_date') // Tarihi de istiyoruz
+      .select('id, bitis_date') 
       .eq('link', url)
       .maybeSingle();
 
     if (error) throw error;
 
     let durum = 'yok'; // Varsayılan: Veritabanında yok
+    let kampanyaId = null; // Eklentiye göndereceğimiz ID
 
     if (data) {
+      kampanyaId = data.id; // ID'yi yakaladık!
+      
       // Bugünün tarihini al (Saat farkını yok sayıp sadece günü kıyaslamak için)
       const bugun = new Date().toISOString().split('T')[0];
       
@@ -30,8 +33,8 @@ export async function GET(request) {
       }
     }
 
-    // Cevabı gönderiyoruz
-    return new Response(JSON.stringify({ durum: durum }), {
+    // Cevabı gönderiyoruz (Artık ID bilgisi de gidiyor!)
+    return new Response(JSON.stringify({ durum: durum, id: kampanyaId }), {
       status: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
