@@ -3,14 +3,14 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import KampanyaIcerik from './KampanyaIcerik';
 
-// 🚀 SEO: Google botu ve Sosyal Medya için Gelişmiş Metadata Motoru
+// 🚀 SEO: Google botu ve Sosyal Medya için Gelişmiş Metadata Motoru (Görselli Versiyon)
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params; // 🔑 Kritik: Params'ı bekle (await)
   
-  // SEO için açıklama (aciklama) verisini de çekiyoruz
+  // SEO için açıklama ve logo_url verisini de çekiyoruz
   const { data: kampanya } = await supabase
     .from('kampanya')
-    .select('baslik, aciklama, slug, yapan_marka(marka_adi)')
+    .select('baslik, aciklama, slug, yapan_marka(marka_adi, logo_url)')
     .eq('slug', resolvedParams.slug)
     .single();
 
@@ -18,13 +18,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const marka = (kampanya.yapan_marka as any)?.marka_adi || 'Fırsat';
   
+  // Eğer veritabanında logonuz varsa onu alıyoruz, yoksa sitenin standart bir görselini (kendi logonuzu koyabilirsiniz) kullanıyoruz
+  const markaLogosu = (kampanya.yapan_marka as any)?.logo_url || 'https://bikodvardi.com/og-default.jpg';
+  
   // Google'ın en sevdiği başlık formatı (Tıklanma oranını artırır)
   const title = `${marka} İndirim Kodu ve Kampanyası: ${kampanya.baslik} | biKodVardı`;
   
   // Açıklamayı veritabanından alıp Google standartlarına göre (maks 150-160 karakter) ayarlıyoruz
   let rawDescription = kampanya.aciklama || `${marka} markasına ait en güncel "${kampanya.baslik}" fırsatını kaçırma. Ücretsiz indirim kodları ve kampanyalar biKodVardı'da!`;
   
-  // Varsa HTML etiketlerini (<p>, <br> vs.) temizler ki Google arama sonuçlarında kod görünmesin
+  // Varsa HTML etiketlerini (<p>, <br> vs.) temizler
   let cleanDescription = rawDescription.replace(/<[^>]*>?/gm, '');
   const description = cleanDescription.length > 155 ? cleanDescription.substring(0, 152) + '...' : cleanDescription;
 
@@ -34,7 +37,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     // Google'ın sayfayı neyle eşleştireceğini anlatan dinamik anahtar kelimeler
     keywords: [marka, `${marka} indirim kodu`, `${marka} kampanya`, 'indirim kodu', 'promosyon kodu', 'bikodvardı', kampanya.baslik],
     
-    // WhatsApp, Twitter, Telegram'da link paylaşılınca çıkacak şık önizleme kartları
+    // WhatsApp, Twitter, Telegram'da link paylaşılınca çıkacak GÖRSELLİ şık önizleme kartları
     openGraph: {
       title,
       description,
@@ -42,11 +45,20 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       siteName: 'biKodVardı',
       locale: 'tr_TR',
       type: 'article',
+      images: [
+        {
+          url: markaLogosu,
+          width: 800,
+          height: 600,
+          alt: `${marka} İndirim Kodu`,
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
+      images: [markaLogosu],
     },
     // Google'a "Bu sayfanın orijinal adresi budur, kopya içerik muamelesi yapma" diyoruz
     alternates: {
