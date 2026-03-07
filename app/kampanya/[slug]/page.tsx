@@ -3,21 +3,55 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import KampanyaIcerik from './KampanyaIcerik';
 
-// Google botu için metadata motoru
+// 🚀 SEO: Google botu ve Sosyal Medya için Gelişmiş Metadata Motoru
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params; // 🔑 Kritik: Params'ı bekle (await)
+  
+  // SEO için açıklama (aciklama) verisini de çekiyoruz
   const { data: kampanya } = await supabase
     .from('kampanya')
-    .select('baslik, yapan_marka(marka_adi)')
+    .select('baslik, aciklama, slug, yapan_marka(marka_adi)')
     .eq('slug', resolvedParams.slug)
     .single();
 
   if (!kampanya) return { title: 'Kampanya Bulunamadı | biKodVardı' };
 
-  const marka = (kampanya.yapan_marka as any)?.marka_adi || 'Marka';
+  const marka = (kampanya.yapan_marka as any)?.marka_adi || 'Fırsat';
+  
+  // Google'ın en sevdiği başlık formatı (Tıklanma oranını artırır)
+  const title = `${marka} İndirim Kodu ve Kampanyası: ${kampanya.baslik} | biKodVardı`;
+  
+  // Açıklamayı veritabanından alıp Google standartlarına göre (maks 150-160 karakter) ayarlıyoruz
+  let rawDescription = kampanya.aciklama || `${marka} markasına ait en güncel "${kampanya.baslik}" fırsatını kaçırma. Ücretsiz indirim kodları ve kampanyalar biKodVardı'da!`;
+  
+  // Varsa HTML etiketlerini (<p>, <br> vs.) temizler ki Google arama sonuçlarında kod görünmesin
+  let cleanDescription = rawDescription.replace(/<[^>]*>?/gm, '');
+  const description = cleanDescription.length > 155 ? cleanDescription.substring(0, 152) + '...' : cleanDescription;
+
   return {
-    title: `${marka} - ${kampanya.baslik} | biKodVardı`,
-    description: `${marka} markasının en güncel ${kampanya.baslik} kampanyası biKodVardı'da!`,
+    title,
+    description,
+    // Google'ın sayfayı neyle eşleştireceğini anlatan dinamik anahtar kelimeler
+    keywords: [marka, `${marka} indirim kodu`, `${marka} kampanya`, 'indirim kodu', 'promosyon kodu', 'bikodvardı', kampanya.baslik],
+    
+    // WhatsApp, Twitter, Telegram'da link paylaşılınca çıkacak şık önizleme kartları
+    openGraph: {
+      title,
+      description,
+      url: `https://bikodvardi.com/kampanya/${kampanya.slug}`,
+      siteName: 'biKodVardı',
+      locale: 'tr_TR',
+      type: 'article',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+    // Google'a "Bu sayfanın orijinal adresi budur, kopya içerik muamelesi yapma" diyoruz
+    alternates: {
+      canonical: `https://bikodvardi.com/kampanya/${kampanya.slug}`,
+    }
   };
 }
 

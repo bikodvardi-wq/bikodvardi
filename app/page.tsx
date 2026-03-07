@@ -12,6 +12,9 @@ export default function Home() {
   const [ucretsizKampanyalar, setUcretsizKampanyalar] = useState<any[]>([]);
   const [tumAktifKampanyalar, setTumAktifKampanyalar] = useState<any[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
+  
+  // Arama için eklendi: Artık tüm markaları tek seferde çekip hafızada tutacağız
+  const [tumMarkalar, setTumMarkalar] = useState<any[]>([]); 
   const [aramaTerimi, setAramaTerimi] = useState("");
   const [aramaSonuclari, setAramaSonuclari] = useState<any[]>([]);
   
@@ -41,36 +44,35 @@ export default function Home() {
           // 2. Kampanya Türleri
           supabase.from('kampanya_turu').select('id, tur_adi'),
           
-          // 3. Markalar
+          // 3. Markalar (TÜMÜNÜ ÇEKİYORUZ - Arama için lazım)
           supabase.from('marka').select('id, marka_adi, slug, logo_url, sektor_id, ek_sektor_idler'),
           
-          // 4. En Yeniler (Slider için sadece 10 tane yeterli)
+          // 4. En Yeniler (Rastgelelik için limiti 20'ye çıkardık)
           supabase.from('kampanya')
             .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url, sektor_id)')
             .or(`bitis_date.gt.${now},bitis_date.is.null`)
             .order('created_at', { ascending: false })
-            .limit(10),
+            .limit(20),
             
-          // 5. Ücretsizler (Slider için 10 tane yeterli)
+          // 5. Ücretsizler (Rastgelelik için limiti 20'ye çıkardık)
           supabase.from('kampanya')
             .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url, sektor_id)')
             .in('kampanya_turu', [3, 4])
             .or(`bitis_date.gt.${now},bitis_date.is.null`)
             .order('created_at', { ascending: false })
-            .limit(10),
+            .limit(20),
 
           // 6. TÜM AKTİF KAMPANYALAR (Sayaçlar ve Filtreleme İçin)
-          // Limit 1000'de kalarak tüm aktifleri çekiyoruz
           supabase.from('kampanya')
             .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url, sektor_id), bitis_date')
             .or(`bitis_date.gt.${now},bitis_date.is.null`)
             .order('created_at', { ascending: false })
             .limit(1000), 
 
-          // 7. Toplam Kampanya Sayısı (Tarihçe dahil tüm veritabanı)
+          // 7. Toplam Kampanya Sayısı
           supabase.from('kampanya').select('id', { count: 'exact', head: true }),
           
-          // 8. Toplam Marka Sayısı (Count)
+          // 8. Toplam Marka Sayısı
           supabase.from('marka').select('id', { count: 'exact', head: true })
         ]);
 
@@ -81,8 +83,15 @@ export default function Home() {
         const yeniKData = yeniKRes.data || [];
         const ucretsizData = ucretsizRes.data || [];
 
-        setUcretsizKampanyalar(ucretsizData.slice(0, 6));
-        setEnYeniKampanyalar(yeniKData.slice(0, 6));
+        // TÜM MARKALARI HAFIZAYA AL (Canlı arama için)
+        setTumMarkalar(mData);
+
+        // RASTGELE KARIŞTIRMA İŞLEMİ (Her girişte farklı görünsün diye)
+        const karistir = (array: any[]) => [...array].sort(() => 0.5 - Math.random());
+        
+        setUcretsizKampanyalar(karistir(ucretsizData).slice(0, 6)); // 20'sini karıştır, 6'sını al
+        setEnYeniKampanyalar(karistir(yeniKData).slice(0, 6));     // 20'sini karıştır, 6'sını al
+        
         setTumAktifKampanyalar(tumAktifData);
         setKampanyaTurleri(tData);
 
@@ -117,9 +126,9 @@ export default function Home() {
 
         // İstatistikleri Ayarla
         setStats({ 
-          aktif: tumAktifData.length, // Şu an yayında olanlar (373 gibi)
-          toplam: tumToplamRes.count || 0, // Tarihçe dahil hepsi (649 gibi)
-          marka: markaCountRes.count || 0 // Marka sayısı
+          aktif: tumAktifData.length,
+          toplam: tumToplamRes.count || 0,
+          marka: markaCountRes.count || 0
         });
 
       } catch (err) {
@@ -131,11 +140,15 @@ export default function Home() {
     veriGetir();
   }, []);
 
-  const aramaYap = async (terim: string) => {
+  // YENİ ARAMA FONKSİYONU: Veritabanına gitmek yerine Türkçe uyumlu olarak hafızada arar. (Hızlı ve Kesin)
+  const aramaYap = (terim: string) => {
     setAramaTerimi(terim);
     if (terim.length > 1) {
-      const { data } = await supabase.from('marka').select('*').ilike('marka_adi', `%${terim}%`).limit(5);
-      setAramaSonuclari(data || []);
+      const kucukTerim = terim.toLocaleLowerCase('tr-TR');
+      const sonuclar = tumMarkalar
+        .filter(m => m.marka_adi.toLocaleLowerCase('tr-TR').includes(kucukTerim))
+        .slice(0, 5); // İlk 5 sonucu göster
+      setAramaSonuclari(sonuclar);
     } else { 
       setAramaSonuclari([]); 
     }
@@ -187,9 +200,7 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <header className="text-center pt-10 md:pt-16 pb-12 max-w-4xl mx-auto">
           
-          {/* SAYAÇLARI GÜNCELLEDİK: TOPLAM, AKTİF VE MARKA OLARAK 3'E AYIRDIK */}
           <div className="flex flex-wrap justify-center gap-3 mb-8">
-             {/* 1. TOPLAM KAMPANYA (Tarihçe) */}
              <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
                 <span className="text-orange-500 text-xs">📦</span>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
@@ -197,7 +208,6 @@ export default function Home() {
                 </span>
              </div>
 
-             {/* 2. AKTİF KAMPANYA (Canlı) */}
              <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -208,7 +218,6 @@ export default function Home() {
                 </span>
              </div>
 
-             {/* 3. MARKA SAYISI */}
              <div className="hidden md:inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
                 <span className="text-blue-500 font-black text-xs">●</span>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
@@ -222,27 +231,30 @@ export default function Home() {
             <span className="text-blue-600 italic font-light">bi'kod bul.</span>
           </h2>
 
-          <div className="relative w-full max-w-4xl mx-auto">
-            <input 
-              type="text" 
-              placeholder="Marka, kampanya veya kod ara..." 
-              value={aramaTerimi} 
-              onChange={(e) => aramaYap(e.target.value)} 
-              className="w-full bg-white border border-slate-200 p-6 rounded-3xl outline-none text-lg shadow-xl focus:ring-4 focus:ring-blue-500/10 transition-all font-medium" 
-            />
+          <div className="w-full max-w-4xl mx-auto">
+            {/* ARAMA ÇUBUĞU VE SONUÇLAR KUTUSU (Bağımsızlaştı) */}
+            <div className="relative w-full">
+              <input 
+                type="text" 
+                placeholder="Marka, kampanya veya kod ara..." 
+                value={aramaTerimi} 
+                onChange={(e) => aramaYap(e.target.value)} 
+                className="w-full bg-white border border-slate-200 p-6 rounded-3xl outline-none text-lg shadow-xl focus:ring-4 focus:ring-blue-500/10 transition-all font-medium" 
+              />
 
-            {aramaSonuclari.length > 0 && (
-              <div className="absolute top-[105%] left-0 right-0 bg-white border border-slate-200 rounded-3xl shadow-2xl p-4 z-50 overflow-hidden text-left z-[70]">
-                {aramaSonuclari.map((m: any) => (
-                  <Link key={m.id} href={`/marka/${m.slug}`} className="flex items-center gap-4 p-3 hover:bg-blue-50 rounded-2xl transition no-underline text-slate-900 font-bold">
-                    {m.marka_adi} İndirim Kodları
-                  </Link>
-                ))}
-              </div>
-            )}
+              {aramaSonuclari.length > 0 && (
+                <div className="absolute top-full mt-3 left-0 right-0 bg-white border border-slate-200 rounded-3xl shadow-2xl p-4 z-[70] overflow-hidden text-left">
+                  {aramaSonuclari.map((m: any) => (
+                    <Link key={m.id} href={`/marka/${m.slug}`} className="flex items-center gap-4 p-3 hover:bg-blue-50 rounded-2xl transition no-underline text-slate-900 font-bold">
+                      {m.marka_adi} İndirim Kodları
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
 
-            {/* Filtre satırı */}
-            <div className="flex flex-wrap justify-center gap-4 mt-6">
+            {/* FİLTRE SATIRI (Arama kutusundan ayrıldı) */}
+            <div className="flex flex-wrap justify-center gap-4 mt-6 relative z-[50]">
               <select
                 value={seciliSektor}
                 onChange={(e) => setSeciliSektor(e.target.value)}
