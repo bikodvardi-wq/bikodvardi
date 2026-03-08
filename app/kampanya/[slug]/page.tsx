@@ -78,5 +78,36 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     .neq('id', kampanya.id)
     .limit(3);
 
-  return <KampanyaIcerik kampanya={kampanya} benzerler={benzerler || []} />;
+  const marka = (kampanya.yapan_marka_bilgisi as any)?.marka_adi || 'Fırsat';
+
+  // 🚀 YENİ EKLENEN KISIM: Google Botları İçin Görünmez Yapısal Veri (Schema Markup)
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": `${marka} İndirim Kodu: ${kampanya.baslik}`,
+    "description": kampanya.aciklama || `${marka} markasına ait güncel indirim fırsatı.`,
+    "offers": {
+      "@type": "Offer",
+      "name": kampanya.baslik,
+      "priceCurrency": "TRY",
+      "price": "0", // Ücretsiz/Bedava algısı yaratır
+      "validFrom": kampanya.created_at || new Date().toISOString(),
+      "validThrough": kampanya.bitis_date ? `${kampanya.bitis_date}T23:59:59Z` : "2030-12-31T23:59:59Z",
+      "seller": {
+        "@type": "Organization",
+        "name": marka
+      }
+    }
+  };
+
+  return (
+    <>
+      {/* Google Botları bu görünmez script'i okuyup arama sonuçlarını Zengin Sonuçlara (Rich Snippets) dönüştürecek */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <KampanyaIcerik kampanya={kampanya} benzerler={benzerler || []} />
+    </>
+  );
 }
