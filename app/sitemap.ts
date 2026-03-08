@@ -7,8 +7,16 @@ export default async function sitemap() {
   const baseUrl = 'https://bikodvardi.com';
 
   try {
+    // 🔥 YENİ: Bugünün tarihini alıyoruz ki süresi geçenleri eleyelim
+    const now = new Date().toISOString();
+
     const [kampanyalarRes, sektorlerRes, markalarRes] = await Promise.all([
-      supabase.from('kampanya').select('slug, created_at'),
+      // 🔥 DEĞİŞİKLİK BURADA: Sadece bitiş tarihi bugünden büyük olanları VEYA süresiz (null) olanları çekiyoruz
+      supabase
+        .from('kampanya')
+        .select('slug, created_at')
+        .or(`bitis_date.gt.${now},bitis_date.is.null`),
+      
       supabase.from('sektor').select('slug'),
       supabase.from('marka').select('slug')
     ]);
@@ -17,7 +25,6 @@ export default async function sitemap() {
       .filter(k => k.slug)
       .map((k) => ({
         url: `${baseUrl}/kampanya/${k.slug}`,
-        // Artık gerçek tarihimiz var!
         lastModified: k.created_at ? new Date(k.created_at) : new Date(),
         changeFrequency: 'daily' as const,
         priority: 1.0,
