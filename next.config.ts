@@ -1,12 +1,18 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
   typescript: {
-    // TypeScript hataları olsa bile derlemeye devam et
     ignoreBuildErrors: true,
   },
-  eslint: {
-    // ESLint hatalarını derleme sırasında görmezden gel
-    ignoreDuringBuilds: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'SENIN_SUPABASE_ID.supabase.co', // BURAYA KENDİ SUPABASE ADRESİNİ YAZMAYI UNUTMA! (Örn: xxyyzz.supabase.co)
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
   },
 };
 
