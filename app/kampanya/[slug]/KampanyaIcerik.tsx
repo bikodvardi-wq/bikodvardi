@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image'; // 🚀 YENİ EKLENDİ: Next.js Turbo Resim Motoru
 import { supabase } from '@/lib/supabase';
 
 export default function KampanyaIcerik({ kampanya: ilkKampanya, benzerler }: { kampanya: any, benzerler: any[] }) {
@@ -54,6 +55,32 @@ export default function KampanyaIcerik({ kampanya: ilkKampanya, benzerler }: { k
   const disLink = kampanya.link && kampanya.link !== "#" 
     ? (kampanya.link.startsWith('http') ? kampanya.link : `https://${kampanya.link}`) 
     : null;
+
+  // 🚀 YENİ EKLENDİ: Arka planda sayacı artırıp kullanıcıyı markaya gönderen fonksiyon
+  const yonlendirVeSay = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault(); // Butonun standart tıklamasını durdur
+
+    // 1. Kullanıcıyı hiç bekletmeden anında yeni sekmede markaya gönder
+    if (typeof window !== 'undefined' && disLink) {
+      window.open(disLink, '_blank');
+    }
+
+    // 2. Arka planda Supabase sayacını 1 artır
+    const suankiSayi = kampanya.tiklanma_sayisi || 0;
+    const yeniSayi = suankiSayi + 1;
+
+    const { error } = await supabase
+      .from('kampanya')
+      .update({ tiklanma_sayisi: yeniSayi })
+      .eq('id', kampanya.id);
+
+    // Ekranda da veriyi güncelleyelim (isteğe bağlı ileride ekranda sayacı göstermek istersen hazır olsun)
+    if (!error) {
+      setKampanya({ ...kampanya, tiklanma_sayisi: yeniSayi });
+    } else {
+      console.error('Tıklanma kaydetme hatası:', error);
+    }
+  };
 
   const gun = kampanya.bitis_date 
     ? Math.max(0, Math.ceil((new Date(kampanya.bitis_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))) 
@@ -110,8 +137,11 @@ export default function KampanyaIcerik({ kampanya: ilkKampanya, benzerler }: { k
             <div className="inline-flex items-center gap-3 bg-white pl-2 pr-5 py-2 rounded-full mb-8">
               <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center p-1.5 border border-slate-200">
                 {kampanya.yapan_marka_bilgisi?.logo_url ? (
-                  <img 
+                  // 🚀 DEĞİŞİKLİK 1: Ana Logo Optimize Edildi
+                  <Image 
                     src={kampanya.yapan_marka_bilgisi.logo_url} 
+                    width={64}
+                    height={64}
                     className="w-full h-full object-contain" 
                     alt={kampanya.yapan_marka_bilgisi.marka_adi || 'Marka logosu'} 
                   />
@@ -169,6 +199,7 @@ export default function KampanyaIcerik({ kampanya: ilkKampanya, benzerler }: { k
               {disLink ? (
                 <a 
                   href={disLink} 
+                  onClick={yonlendirVeSay} // 🚀 SİHİR BURADA: Tıklandığında sayacı tetikleyecek
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="flex-1 py-5 md:py-6 bg-white hover:bg-blue-600 hover:text-white text-black text-base md:text-xl font-black rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center gap-2 transition-all shadow-xl no-underline group"
@@ -207,7 +238,14 @@ export default function KampanyaIcerik({ kampanya: ilkKampanya, benzerler }: { k
                 <Link key={bk.id} href={`/kampanya/${bk.slug}`} className="group bg-slate-50 border border-slate-100 p-6 rounded-[2.5rem] hover:bg-white hover:shadow-xl transition-all no-underline">
                   <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center p-1.5 mb-4 border border-slate-200">
                     {bk.yapan_marka_bilgisi?.logo_url ? (
-                      <img src={bk.yapan_marka_bilgisi.logo_url} className="w-full h-full object-contain" alt="" />
+                      // 🚀 DEĞİŞİKLİK 2: Benzer Kampanyaların Logoları Optimize Edildi
+                      <Image 
+                        src={bk.yapan_marka_bilgisi.logo_url} 
+                        width={64}
+                        height={64}
+                        className="w-full h-full object-contain" 
+                        alt={bk.yapan_marka_bilgisi?.marka_adi || 'Marka'} 
+                      />
                     ) : (
                       <span className="text-black font-black text-xs">
                         {bk.yapan_marka_bilgisi?.marka_adi?.charAt(0) || '?'}
