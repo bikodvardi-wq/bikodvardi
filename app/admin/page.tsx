@@ -77,7 +77,6 @@ export default function AdminDashboard() {
             <p className="text-slate-500 font-medium">Toplam {stats.kampanya} kampanyayı yönetiyorsun.</p>
           </div>
           <div className="flex flex-wrap gap-3">
-             {/* 🔥 YENİ: MEDYA STÜDYOSU SEKMESİ */}
              <Link href="/admin/medya-studyo" className="bg-slate-900 text-white px-6 py-4 rounded-3xl font-bold hover:bg-blue-600 shadow-sm transition-all no-underline flex items-center gap-2">
                🎨 Medya Stüdyosu
              </Link>
@@ -145,7 +144,9 @@ export default function AdminDashboard() {
                     <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 bg-slate-50/50">
                         <th className="py-4 pl-8">Markalar</th>
                         <th className="py-4">Kampanya Başlığı</th>
-                        <th className="py-4">Durum</th>
+                        {/* 🚀 YENİ SÜTUN: TIKLANMA SAYISI */}
+                        <th className="py-4 text-center">Tıklanma</th>
+                        <th className="py-4 text-center">Durum</th>
                         <th className="py-4 text-right pr-8">İşlemler</th>
                     </tr>
                 </thead>
@@ -161,13 +162,20 @@ export default function AdminDashboard() {
                                 )}
                             </td>
                             <td className="py-4 font-medium text-slate-500 max-w-xs">{k.baslik}</td>
-                            <td className="py-4">
+                            
+                            {/* 🚀 YENİ VERİ: TIKLANMA HİTİ */}
+                            <td className="py-4 text-center">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-600 rounded-xl text-[11px] font-black uppercase tracking-widest border border-orange-100/50">
+                                  🚀 {k.tiklanma_sayisi || 0}
+                                </span>
+                            </td>
+
+                            <td className="py-4 text-center">
                               <span className={`px-3 py-1 rounded-lg text-[10px] uppercase font-black ${isAktif ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-400'}`}>
                                 {isAktif ? 'Aktif' : 'Bitti'}
                               </span>
                             </td>
                             <td className="py-4 text-right pr-8 flex justify-end gap-2">
-                                {/* 🔥 YENİ: GÖRSEL OLUŞTUR BUTONU */}
                                 <Link 
                                   href={`/admin/medya-studyo?slug=${k.slug}`} 
                                   className="px-4 py-2.5 bg-slate-900 text-white rounded-xl transition-all no-underline text-[10px] uppercase tracking-wide hover:bg-blue-600"
