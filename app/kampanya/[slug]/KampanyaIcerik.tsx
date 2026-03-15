@@ -56,26 +56,28 @@ export default function KampanyaIcerik({ kampanya: ilkKampanya, benzerler }: { k
     ? (kampanya.link.startsWith('http') ? kampanya.link : `https://${kampanya.link}`) 
     : null;
 
-  // 🚀 VIP GİRİŞLİ SAYAÇ FONKSİYONU (RLS Güvenlik Kalkanını Aşar)
+  // 🚀 İZ TAKİPLİ VIP SAYAÇ FONKSİYONU (Hata Dedektifi)
   const yonlendirVeSay = async (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault(); // Butonun standart tıklamasını durdur
+    e.preventDefault(); 
+    console.log("1️⃣ Butona tıklandı! Kampanya ID:", kampanya.id);
 
-    // 1. Kullanıcıyı hiç bekletmeden anında yeni sekmede markaya gönder
     if (typeof window !== 'undefined' && disLink) {
       window.open(disLink, '_blank');
+      console.log("2️⃣ Yeni sekmede link açıldı:", disLink);
     }
 
-    const suankiSayi = kampanya.tiklanma_sayisi || 0;
-    const yeniSayi = suankiSayi + 1;
-
-    // 2. Ekranda hemen güncelleyelim (hızlı hissettirsin)
-    setKampanya({ ...kampanya, tiklanma_sayisi: yeniSayi });
-
-    // 3. Arka planda Supabase'in VIP komutunu çalıştır
-    const { error } = await supabase.rpc('tiklanma_artir', { k_id: kampanya.id });
+    console.log("3️⃣ Supabase'e sayacı artırma emri gönderiliyor...");
+    
+    // VIP Komutu (RPC) çağırıyoruz
+    const { data, error } = await supabase.rpc('tiklanma_artir', { k_id: kampanya.id });
 
     if (error) {
-      console.error('Tıklanma kaydetme hatası (RPC):', error);
+      console.error("🚨 4️⃣ HATA! Supabase isteği reddetti:", error);
+    } else {
+      console.log("✅ 4️⃣ BAŞARILI! Supabase sayacı artırdı. Dönen veri:", data);
+      
+      const suankiSayi = kampanya.tiklanma_sayisi || 0;
+      setKampanya({ ...kampanya, tiklanma_sayisi: suankiSayi + 1 });
     }
   };
 
@@ -195,7 +197,7 @@ export default function KampanyaIcerik({ kampanya: ilkKampanya, benzerler }: { k
               {disLink ? (
                 <a 
                   href={disLink} 
-                  onClick={yonlendirVeSay} // 🚀 Tetikleyici Butonumuz
+                  onClick={yonlendirVeSay} // 🚀 Dedektif Butonumuz burada
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="flex-1 py-5 md:py-6 bg-white hover:bg-blue-600 hover:text-white text-black text-base md:text-xl font-black rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center gap-2 transition-all shadow-xl no-underline group"
