@@ -15,11 +15,30 @@ export default function KampanyaIcerik({ kampanya: ilkKampanya, benzerler }: { k
     fontLink.rel = 'stylesheet';
     document.head.appendChild(fontLink);
 
-    // LocalStorage'dan oy kontrolü (tekrar oy vermeyi engelle)
+    // 1. OY KONTROLÜ
     const oyKey = `kampanya_oy_${kampanya.id}`;
     const kaydedilenOy = localStorage.getItem(oyKey);
     if (kaydedilenOy) {
       setOyVerildi(kaydedilenOy as 'ise_yaradi' | 'hatali');
+    }
+
+    // 🚀 2. YENİ: SAYFA GÖRÜNTÜLENME (HİT) SAYACI
+    // sessionStorage kullanarak aynı kullanıcının sayfayı yenilediğinde sayacı şişirmesini engelliyoruz
+    const goruntulenmeKey = `kampanya_goruntulendi_${kampanya.id}`;
+    if (!sessionStorage.getItem(goruntulenmeKey)) {
+      const goruntulenmeyiArtir = async () => {
+        // Arka planda VIP komutumuzla sayacı artır
+        const { error } = await supabase.rpc('tiklanma_artir', { k_id: kampanya.id });
+        
+        if (!error) {
+          // Ekranda (veya arka planda state'te) sayıyı 1 artır
+          setKampanya(prev => ({ ...prev, tiklanma_sayisi: (prev.tiklanma_sayisi || 0) + 1 }));
+          // Bu oturum için sayıldığını not et (Tarayıcı kapanana kadar tekrar saymaz)
+          sessionStorage.setItem(goruntulenmeKey, 'true');
+        }
+      };
+      
+      goruntulenmeyiArtir();
     }
   }, [kampanya.id]);
 
@@ -55,31 +74,6 @@ export default function KampanyaIcerik({ kampanya: ilkKampanya, benzerler }: { k
   const disLink = kampanya.link && kampanya.link !== "#" 
     ? (kampanya.link.startsWith('http') ? kampanya.link : `https://${kampanya.link}`) 
     : null;
-
-  // 🚀 İZ TAKİPLİ VIP SAYAÇ FONKSİYONU (Hata Dedektifi)
-  const yonlendirVeSay = async (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault(); 
-    console.log("1️⃣ Butona tıklandı! Kampanya ID:", kampanya.id);
-
-    if (typeof window !== 'undefined' && disLink) {
-      window.open(disLink, '_blank');
-      console.log("2️⃣ Yeni sekmede link açıldı:", disLink);
-    }
-
-    console.log("3️⃣ Supabase'e sayacı artırma emri gönderiliyor...");
-    
-    // VIP Komutu (RPC) çağırıyoruz
-    const { data, error } = await supabase.rpc('tiklanma_artir', { k_id: kampanya.id });
-
-    if (error) {
-      console.error("🚨 4️⃣ HATA! Supabase isteği reddetti:", error);
-    } else {
-      console.log("✅ 4️⃣ BAŞARILI! Supabase sayacı artırdı. Dönen veri:", data);
-      
-      const suankiSayi = kampanya.tiklanma_sayisi || 0;
-      setKampanya({ ...kampanya, tiklanma_sayisi: suankiSayi + 1 });
-    }
-  };
 
   const gun = kampanya.bitis_date 
     ? Math.max(0, Math.ceil((new Date(kampanya.bitis_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))) 
@@ -197,7 +191,6 @@ export default function KampanyaIcerik({ kampanya: ilkKampanya, benzerler }: { k
               {disLink ? (
                 <a 
                   href={disLink} 
-                  onClick={yonlendirVeSay} // 🚀 Dedektif Butonumuz burada
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="flex-1 py-5 md:py-6 bg-white hover:bg-blue-600 hover:text-white text-black text-base md:text-xl font-black rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center gap-2 transition-all shadow-xl no-underline group"
