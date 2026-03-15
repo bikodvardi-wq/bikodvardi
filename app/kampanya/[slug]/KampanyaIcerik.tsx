@@ -32,7 +32,7 @@ export default function KampanyaIcerik({ kampanya: ilkKampanya, benzerler }: { k
         
         if (!error) {
           // Ekranda (veya arka planda state'te) sayıyı 1 artır
-          setKampanya(prev => ({ ...prev, tiklanma_sayisi: (prev.tiklanma_sayisi || 0) + 1 }));
+        setKampanya((prev: any) => ({ ...prev, tiklanma_sayisi: (prev.tiklanma_sayisi || 0) + 1 }));
           // Bu oturum için sayıldığını not et (Tarayıcı kapanana kadar tekrar saymaz)
           sessionStorage.setItem(goruntulenmeKey, 'true');
         }
