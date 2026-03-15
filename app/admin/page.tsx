@@ -77,6 +77,10 @@ export default function AdminDashboard() {
             <p className="text-slate-500 font-medium">Toplam {stats.kampanya} kampanyayı yönetiyorsun.</p>
           </div>
           <div className="flex flex-wrap gap-3">
+             {/* 🚀 YENİ: RAPORLAR BUTONU EN BAŞA EKLENDİ */}
+             <Link href="/admin/raporlar" className="bg-indigo-600 text-white px-6 py-4 rounded-3xl font-bold hover:bg-indigo-700 shadow-sm transition-all no-underline flex items-center gap-2">
+               📊 Raporlar
+             </Link>
              <Link href="/admin/medya-studyo" className="bg-slate-900 text-white px-6 py-4 rounded-3xl font-bold hover:bg-blue-600 shadow-sm transition-all no-underline flex items-center gap-2">
                🎨 Medya Stüdyosu
              </Link>
@@ -144,8 +148,7 @@ export default function AdminDashboard() {
                     <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 bg-slate-50/50">
                         <th className="py-4 pl-8">Markalar</th>
                         <th className="py-4">Kampanya Başlığı</th>
-                        {/* 🚀 YENİ SÜTUN: TIKLANMA SAYISI */}
-                        <th className="py-4 text-center">Tıklanma</th>
+                        <th className="py-4 text-center">Görüntülenme</th>
                         <th className="py-4 text-center">Durum</th>
                         <th className="py-4 text-right pr-8">İşlemler</th>
                     </tr>
@@ -163,7 +166,6 @@ export default function AdminDashboard() {
                             </td>
                             <td className="py-4 font-medium text-slate-500 max-w-xs">{k.baslik}</td>
                             
-                            {/* 🚀 YENİ VERİ: TIKLANMA HİTİ */}
                             <td className="py-4 text-center">
                                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-600 rounded-xl text-[11px] font-black uppercase tracking-widest border border-orange-100/50">
                                   🚀 {k.tiklanma_sayisi || 0}
