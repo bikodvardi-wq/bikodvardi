@@ -2,6 +2,7 @@ import { GoogleAnalytics } from '@next/third-parties/google'
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Script from "next/script";
+import { AppBackButton } from "./AppBackButton"; // "./components/" kısmını sildik
 
 export const viewport: Viewport = {
   themeColor: "#2563eb",
@@ -11,15 +12,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  // --- 🔥 KRİTİK SEO AYARLARI ---
-  metadataBase: new URL('https://bikodvardi.com'), // Google'ın seçtiği asıl adres
+  metadataBase: new URL('https://bikodvardi.com'),
   verification: {
-    google: "BURAYA_SEARCH_CONSOLE_KODUNU_KOY", // Google Search Console'daki doğrulama kodu
+    google: "BURAYA_SEARCH_CONSOLE_KODUNU_KOY", 
   },
   alternates: {
-    canonical: 'https://bikodvardi.com', // Yönlendirme hatasını çözen satır
+    canonical: 'https://bikodvardi.com',
   },
-  // ------------------------------
   title: {
     default: "biKodVardı | En Güncel İndirim Kodları ve Kampanyalar",
     template: "%s | biKodVardı"
@@ -63,6 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        <AppBackButton /> {/* Android Geri Tuşu Burada Sessizce Çalışacak */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
