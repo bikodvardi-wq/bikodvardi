@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
-// ISR: Her 1 saatte bir yenile (kampanyalar güncel kalsın)
+// ISR: Her 1 saatte bir yenile
 export const revalidate = 3600; 
 
 export async function generateStaticParams() {
@@ -65,9 +65,10 @@ const kalanGunHesapla = (tarihVerisi: string | null) => {
 export default async function MarkaDetay({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
+  // 1. MARKA VE SEKTÖR BİLGİSİNİ ÇEK
   const { data: marka } = await supabase
     .from('marka')
-    .select('*')
+    .select('*, sektor_bilgisi:sektor_id ( slug, sektor_adi )')
     .eq('slug', slug)
     .single();
 
@@ -77,7 +78,8 @@ export default async function MarkaDetay({ params }: { params: Promise<{ slug: s
 
   const now = new Date().toISOString();
 
-  const { data: kampanyalar, error } = await supabase
+  // 2. KAMPANYALARI ÇEK
+  const { data: kampanyalar } = await supabase
     .from('kampanya')
     .select(`
       *,
@@ -88,14 +90,55 @@ export default async function MarkaDetay({ params }: { params: Promise<{ slug: s
     .or(`bitis_date.gt.${now},bitis_date.is.null`)
     .order('id', { ascending: false });
 
-  if (error) {
-    console.error('Kampanya çekme hatası:', error);
-  }
-
   const kampanyaListesi = kampanyalar || [];
+
+  // 3. BENZER MARKALARI ÇEK (Aynı sektördeki diğer markalar)
+  const { data: benzerMarkalar } = await supabase
+    .from('marka')
+    .select('slug, marka_adi')
+    .eq('sektor_id', marka.sektor_id)
+    .neq('id', marka.id) // Kendisini hariç tut
+    .limit(5);
+
+  const benzerMarkaListesi = benzerMarkalar || [];
+
+  // Akıllı Geri Dönüş Mantığı
+  const sektorData = Array.isArray(marka.sektor_bilgisi) ? marka.sektor_bilgisi[0] : marka.sektor_bilgisi;
+  const geriLink = sektorData?.slug ? `/sektor/${sektorData.slug}` : '/';
+  const sektorAdi = sektorData?.sektor_adi || 'Kategoriler';
+
+  // YENİ: FAQ Schema Oluşturucu (Google Botları İçin)
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": `${marka.marka_adi} indirim kodu nasıl bulunur?`,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": `biKodVardı platformunda ${marka.marka_adi} mağazasına ait en güncel indirim kodlarını ve kampanyaları bulabilirsiniz. Listelenen fırsatlardan size en uygun olanı seçerek anında kullanabilirsiniz.`
+        }
+      },
+      {
+        "@type": "Question",
+        "name": `${marka.marka_adi} kupon kodu nasıl kullanılır?`,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": `Sitemizdeki 'Kuponu Gör' butonuna tıklayarak açılan ${marka.marka_adi} indirim kodunu kopyalayın. Ardından mağazanın ödeme ekranındaki 'İndirim Kodu' alanına yapıştırarak indirimi uygulayabilirsiniz.`
+        }
+      }
+    ]
+  };
 
   return (
     <main className="min-h-screen bg-[#F0F4F8] font-['Plus_Jakarta_Sans'] pb-24 text-left">
+      {/* JSON-LD Schema Enjeksiyonu */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+      
       <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap"
         rel="stylesheet"
@@ -108,16 +151,21 @@ export default async function MarkaDetay({ params }: { params: Promise<{ slug: s
         </div>
 
         <div className="max-w-7xl mx-auto px-6 relative z-10">
-          {/* SEO Breadcrumb */}
           <nav className="flex items-center gap-2 mb-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">
             <Link href="/" className="hover:text-blue-600 transition-colors">Ana Sayfa</Link>
             <span>/</span>
+            {sektorData?.slug && (
+              <>
+                <Link href={`/sektor/${sektorData.slug}`} className="hover:text-blue-600 transition-colors">{sektorAdi}</Link>
+                <span>/</span>
+              </>
+            )}
             <span className="text-slate-900">{marka.marka_adi} Mağazası</span>
           </nav>
 
           <div className="flex justify-between items-start mb-8">
             <Link
-              href="/"
+              href={geriLink}
               className="flex items-center gap-2 text-slate-400 hover:text-blue-600 transition-colors group bg-transparent border-none cursor-pointer p-0 no-underline"
             >
               <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
@@ -178,6 +226,9 @@ export default async function MarkaDetay({ params }: { params: Promise<{ slug: s
             const yapanMarkaLogo = markaBilgisi?.logo_url;
             const turBilgisi = Array.isArray(k.tur_bilgisi) ? k.tur_bilgisi[0] : k.tur_bilgisi;
             const turAdi = turBilgisi?.tur_adi || (k.kampanya_turu || 'Kampanya');
+            
+            // Sosyal Kanıt: Tıklanma sayısı veya dinamik bir sayı
+            const tiklanma = k.tiklanma_sayisi > 0 ? k.tiklanma_sayisi : Math.floor(Math.random() * 40) + 10;
 
             return (
               <div
@@ -196,17 +247,25 @@ export default async function MarkaDetay({ params }: { params: Promise<{ slug: s
                     {yapanMarkaAdi ? yapanMarkaAdi[0] : 'K'}
                   </div>
 
-                  <div className="inline-flex items-center gap-2.5 bg-white px-2 py-1.5 rounded-xl mb-6 shadow-lg">
-                    <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center p-1.5 text-[#0F172A] font-black text-xs">
-                      {yapanMarkaLogo ? (
-                        <img src={yapanMarkaLogo} className="w-full h-full object-contain" alt={yapanMarkaAdi} />
-                      ) : (
-                        yapanMarkaAdi ? yapanMarkaAdi[0] : 'F'
-                      )}
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="inline-flex items-center gap-2.5 bg-white px-2 py-1.5 rounded-xl shadow-lg">
+                      <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center p-1.5 text-[#0F172A] font-black text-xs">
+                        {yapanMarkaLogo ? (
+                          <img src={yapanMarkaLogo} className="w-full h-full object-contain" alt={yapanMarkaAdi} />
+                        ) : (
+                          yapanMarkaAdi ? yapanMarkaAdi[0] : 'F'
+                        )}
+                      </div>
+                      <span className="text-[#0F172A] font-black tracking-tight uppercase text-xs pr-3" style={{ fontFamily: 'Outfit' }}>
+                        {yapanMarkaAdi}
+                      </span>
                     </div>
-                    <span className="text-[#0F172A] font-black tracking-tight uppercase text-xs pr-3" style={{ fontFamily: 'Outfit' }}>
-                      {yapanMarkaAdi}
-                    </span>
+
+                    {/* YENİ: Sosyal Kanıt (Social Proof) Rozeti */}
+                    <div className="hidden md:flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/20 px-3 py-1.5 rounded-lg">
+                      <span className="text-[10px]">🔥</span>
+                      <span className="text-orange-400 text-[9px] font-black uppercase tracking-widest">{tiklanma} Kullanım</span>
+                    </div>
                   </div>
 
                   <h3 className="text-2xl md:text-3xl font-[800] text-white leading-[1.2] mb-6 tracking-tight relative z-10" style={{ fontFamily: 'Outfit' }}>
@@ -247,52 +306,77 @@ export default async function MarkaDetay({ params }: { params: Promise<{ slug: s
           })}
         </div>
 
-        {/* SEO REHBER ALANI (Orijinal tasarım diliyle entegre edildi) */}
-        <section className="mt-16 bg-white rounded-[3rem] p-10 md:p-16 shadow-sm border border-slate-100">
-          <h2 className="text-3xl font-[900] text-slate-900 mb-8 tracking-tighter" style={{ fontFamily: 'Outfit' }}>
-            {marka.marka_adi} Alışveriş Rehberi
-          </h2>
-          <div className="grid md:grid-cols-2 gap-10">
-            <div className="prose prose-slate text-slate-600 font-medium leading-relaxed">
-              <p className="mb-4">
-                En güncel <strong>{marka.marka_adi} indirim kodu</strong> ve kampanya seçeneklerini kullanarak alışverişinizi çok daha uygun fiyatlara tamamlayabilirsiniz. biKodVardı olarak her gün en yeni fırsatları sizin için doğruluyoruz.
-              </p>
-              <p>
-                Mağaza sayfasında geçerli aktif kuponları görüntülemek için yukarıdaki listeyi inceleyebilir, size en uygun fırsatı anında kullanabilirsiniz.
-              </p>
-            </div>
-            <div className="bg-slate-50 rounded-3xl p-8 border border-slate-100">
-              <h4 className="text-[11px] font-[900] text-blue-600 uppercase tracking-[0.2em] mb-4">Nasıl Kullanılır?</h4>
-              <ul className="space-y-3">
-                {['Kuponu görüntüle butonuna tıkla', 'Açılan kodu kopyala', 'Ödeme sayfasında ilgili alana yapıştır'].map((step, i) => (
-                  <li key={i} className="flex items-center gap-3 text-sm font-bold text-slate-700">
-                    <span className="w-6 h-6 rounded-full bg-white shadow-sm flex items-center justify-center text-[10px] text-blue-600">{i+1}</span>
-                    {step}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        {/* İÇ LİNKLEME (Tarama Botları İçin) */}
-        <div className="mt-12 flex flex-wrap gap-2 justify-center">
-          {['Trendyol', 'Hepsiburada', 'n11', 'Flo', 'Amazon'].map((m) => (
-            <Link 
-              key={m}
-              href={`/marka/${m.toLowerCase()}`}
-              className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 transition-colors bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm"
-            >
-              {m} FIRSATLARI
-            </Link>
-          ))}
-        </div>
-
+        {/* YENİ: Boş Durum (Empty State) Yönetimi */}
         {kampanyaListesi.length === 0 && (
-          <div className="text-center py-16 bg-white rounded-[3rem] border border-slate-100 mt-8">
-            <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">
-              Aktif fırsat bulunamadı.
-            </p>
+          <div className="text-center py-20 bg-white rounded-[3rem] border border-slate-100 mt-8 shadow-sm">
+            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <span className="text-3xl">📭</span>
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 mb-2" style={{ fontFamily: 'Outfit' }}>Şu an aktif fırsat bulunmuyor</h3>
+            <p className="text-slate-500 font-medium mb-8">Ancak {sektorAdi} kategorisindeki diğer markaların indirimlerini kaçırma!</p>
+            
+            {benzerMarkaListesi.length > 0 && (
+              <div className="flex flex-wrap gap-3 justify-center">
+                {benzerMarkaListesi.map((m) => (
+                  <Link 
+                    key={m.slug}
+                    href={`/marka/${m.slug}`}
+                    className="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all px-6 py-3 rounded-2xl font-bold text-sm"
+                  >
+                    {m.marka_adi} Fırsatları
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* SEO REHBER & SIKÇA SORULAN SORULAR */}
+        {kampanyaListesi.length > 0 && (
+          <section className="mt-16 bg-white rounded-[3rem] p-10 md:p-16 shadow-sm border border-slate-100">
+            <h2 className="text-3xl font-[900] text-slate-900 mb-8 tracking-tighter" style={{ fontFamily: 'Outfit' }}>
+              {marka.marka_adi} Alışveriş Rehberi & S.S.S.
+            </h2>
+            <div className="grid md:grid-cols-2 gap-10">
+              <div className="prose prose-slate text-slate-600 font-medium leading-relaxed">
+                <p className="mb-4">
+                  En güncel <strong>{marka.marka_adi} indirim kodu</strong> ve kampanya seçeneklerini kullanarak alışverişinizi çok daha uygun fiyatlara tamamlayabilirsiniz. biKodVardı olarak her gün en yeni fırsatları sizin için doğruluyoruz.
+                </p>
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                  <h4 className="font-bold text-slate-900 mb-2">{marka.marka_adi} indirim kodu nasıl bulunur?</h4>
+                  <p className="text-sm">Platformumuzda markaya ait en güncel kodlar listelenir. Aktif fırsatlardan birini seçerek hemen kullanabilirsiniz.</p>
+                </div>
+              </div>
+              <div className="bg-slate-50 rounded-3xl p-8 border border-slate-100">
+                <h4 className="text-[11px] font-[900] text-blue-600 uppercase tracking-[0.2em] mb-4">Nasıl Kullanılır?</h4>
+                <ul className="space-y-3">
+                  {['Kuponu görüntüle butonuna tıkla', 'Açılan kodu kopyala', 'Ödeme sayfasında ilgili alana yapıştır'].map((step, i) => (
+                    <li key={i} className="flex items-center gap-3 text-sm font-bold text-slate-700">
+                      <span className="w-6 h-6 rounded-full bg-white shadow-sm flex items-center justify-center text-[10px] text-blue-600">{i+1}</span>
+                      {step}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* YENİ: DİNAMİK İÇ LİNKLEME (Benzer Markalar) */}
+        {benzerMarkaListesi.length > 0 && kampanyaListesi.length > 0 && (
+          <div className="mt-12 text-center">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">DİĞER {sektorAdi.toUpperCase()} MARKALARI</p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {benzerMarkaListesi.map((m) => (
+                <Link 
+                  key={m.slug}
+                  href={`/marka/${m.slug}`}
+                  className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm"
+                >
+                  {m.marka_adi}
+                </Link>
+              ))}
+            </div>
           </div>
         )}
       </div>
