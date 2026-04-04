@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const [stats, setStats] = useState({ kampanya: 0, marka: 0, sektor: 0, aktifKampanya: 0, bekleyenIletisim: 0 });
   const [tumKampanyalar, setTumKampanyalar] = useState<any[]>([]);
   const [filtreliKampanyalar, setFiltreliKampanyalar] = useState<any[]>([]);
@@ -12,7 +14,7 @@ export default function AdminDashboard() {
   // FİLTRE STATE'LERİ
   const [aramaMetni, setAramaMetni] = useState('');
   const [seciliMarka, setSeciliMarka] = useState('');
-  const [seciliDurum, setSeciliDurum] = useState(''); // 'aktif' | 'pasif'
+  const [seciliDurum, setSeciliDurum] = useState(''); 
   const [benzersizMarkalar, setBenzersizMarkalar] = useState<string[]>([]);
   
   const [yukleniyor, setYukleniyor] = useState(true);
@@ -24,7 +26,7 @@ export default function AdminDashboard() {
     alert("📧 Mail adresi kopyalandı!");
   };
 
-  // 🗑️ YENİ: Gerçek Silme Fonksiyonu
+  // 🗑️ Gerçek Silme Fonksiyonu
   const kampanyaSil = async (id: number, baslik: string) => {
     const onay = window.confirm(`"${baslik}" kampanyasını kalıcı olarak silmek istediğinize emin misiniz?`);
     
@@ -37,16 +39,10 @@ export default function AdminDashboard() {
       if (error) {
         alert("Silme işlemi sırasında bir hata oluştu: " + error.message);
       } else {
-        // Silineni anında ekrandan kaldır (Sayfa yenilemeye gerek kalmaz)
         setTumKampanyalar(prev => prev.filter(k => k.id !== id));
-        // Filtreli listeyi de anında güncelle
         setFiltreliKampanyalar(prev => prev.filter(k => k.id !== id));
-        
-        // İstatistikleri de 1 düşür
-        setStats(prev => ({ 
-            ...prev, 
-            kampanya: prev.kampanya - 1 
-        }));
+        setStats(prev => ({ ...prev, kampanya: prev.kampanya - 1 }));
+        router.refresh(); // Önbelleği temizle
       }
     }
   };
@@ -70,7 +66,6 @@ export default function AdminDashboard() {
     setTumKampanyalar(kampanyalar);
     setFiltreliKampanyalar(kampanyalar);
     
-    // Filtre için benzersiz marka isimlerini çıkar
     const markalarListesi = Array.from(new Set(kampanyalar.map(k => k.yapan_marka_bilgisi?.marka_adi))).filter(Boolean) as string[];
     setBenzersizMarkalar(markalarListesi.sort());
 
@@ -108,13 +103,25 @@ export default function AdminDashboard() {
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto font-['Plus_Jakarta_Sans']">
       
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
+      {/* HEADER VE YENİDEN EKLENEN BUTONLAR */}
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end mb-10 gap-6">
           <div>
             <h2 className="text-4xl font-[900] text-slate-900 tracking-tighter" style={{ fontFamily: 'Outfit' }}>Komuta Merkezi 🚀</h2>
             <p className="text-slate-500 font-medium italic">Buket Ö. ARMUTCU | İş Geliştirme Modu</p>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+             
+             {/* YENİDEN EKLENEN İKİNCİL BUTONLAR (Marka Düzenle & Raporlar) */}
+             <Link href="/admin/markalar" className="bg-white border border-slate-200 text-slate-700 px-5 py-3.5 rounded-2xl font-bold hover:bg-slate-50 hover:border-slate-300 transition-all no-underline flex items-center gap-2 shadow-sm text-sm">
+                🏢 Marka Düzenle
+             </Link>
+             <Link href="/admin/raporlar" className="bg-white border border-slate-200 text-slate-700 px-5 py-3.5 rounded-2xl font-bold hover:bg-slate-50 hover:border-slate-300 transition-all no-underline flex items-center gap-2 shadow-sm text-sm">
+                📊 Raporlar
+             </Link>
+
+             <div className="hidden md:block w-px h-8 bg-slate-200 mx-2"></div>
+
+             {/* ANA BUTONLAR */}
              <Link href="/admin/marka-takip" className="bg-emerald-600 text-white px-6 py-4 rounded-3xl font-bold hover:scale-105 transition-all no-underline flex items-center gap-2">
                 🤝 Marka Takip {stats.bekleyenIletisim > 0 && <span className="bg-white text-emerald-600 px-2 py-0.5 rounded-full text-xs">{stats.bekleyenIletisim}</span>}
              </Link>
@@ -190,11 +197,10 @@ export default function AdminDashboard() {
                 <tbody className="text-sm font-bold text-slate-700">
                     {filtreliKampanyalar.map((k) => {
                       const isAktif = !k.bitis_date || new Date(k.bitis_date) >= new Date();
-                      const isTrend = (k.tiklanma_sayisi || 0) > 100; // 100 tıklama üstü trend
+                      const isTrend = (k.tiklanma_sayisi || 0) > 100;
                       
                       return (
                         <tr key={k.id} className="group hover:bg-blue-50/20 border-b border-slate-50 transition-colors">
-                            {/* MARKA & LOGO THUMBNAIL */}
                             <td className="py-4 pl-8">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl border border-slate-100 bg-white p-1.5 flex-shrink-0 flex items-center justify-center">
@@ -222,7 +228,6 @@ export default function AdminDashboard() {
 
                             <td className="py-4 text-slate-500 font-medium max-w-xs truncate" title={k.baslik}>{k.baslik}</td>
                             
-                            {/* TREND GÖSTERGESİ */}
                             <td className="py-4 text-center">
                                 <div className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-black ${isTrend ? 'bg-orange-100 text-orange-600 animate-bounce' : 'bg-slate-50 text-slate-300'}`}>
                                     {isTrend ? '🔥 TREND' : '🚀 ' + (k.tiklanma_sayisi || 0)}

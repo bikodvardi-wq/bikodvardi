@@ -9,7 +9,7 @@ export default function KampanyaDuzenle({ params }: { params: Promise<{ slug: st
   const router = useRouter();
   
   const [yukleniyor, setYukleniyor] = useState(true);
-  const [islemYapiliyor, setIslemYapiliyor] = useState(false); // Kaydet/Sil butonlarını disable etmek için
+  const [islemYapiliyor, setIslemYapiliyor] = useState(false);
   const [kampanyaId, setKampanyaId] = useState<number | null>(null);
   
   const [markalar, setMarkalar] = useState<any[]>([]);
@@ -91,12 +91,18 @@ export default function KampanyaDuzenle({ params }: { params: Promise<{ slug: st
     } else {
       alert('✅ Değişiklikler kaydedildi!');
       router.push('/admin');
+      router.refresh();
     }
   };
 
-  // 🗑️ YENİ: Kampanya Silme Fonksiyonu
-  const kampanyaSil = async () => {
-    if (!kampanyaId) return;
+  // 🗑️ YENİ VE GÜVENLİ: Kampanya Silme Fonksiyonu
+  const kampanyaSil = async (e: React.MouseEvent) => {
+    e.preventDefault(); 
+
+    if (!kampanyaId) {
+      alert("⚠️ Sistem Hatası: Kampanya ID'si bulunamadı. Lütfen sayfayı yenileyip tekrar deneyin.");
+      return;
+    }
 
     const onay = window.confirm(`"${form.baslik}" kampanyasını kalıcı olarak SİLMEK istediğinize emin misiniz? Bu işlem geri alınamaz!`);
     
@@ -112,7 +118,8 @@ export default function KampanyaDuzenle({ params }: { params: Promise<{ slug: st
         setIslemYapiliyor(false);
       } else {
         alert('🗑️ Kampanya başarıyla silindi.');
-        router.push('/admin'); // Silince ana listeye geri dön
+        router.push('/admin'); 
+        router.refresh(); 
       }
     }
   };
@@ -230,7 +237,6 @@ export default function KampanyaDuzenle({ params }: { params: Promise<{ slug: st
             </div>
         </div>
 
-        {/* KAYDET BUTONU */}
         <button 
           disabled={islemYapiliyor}
           type="submit" 
@@ -241,7 +247,7 @@ export default function KampanyaDuzenle({ params }: { params: Promise<{ slug: st
 
       </form>
 
-      {/* SİLME BUTONU (Formun dışında, tehlikeli alan) */}
+      {/* SİLME BUTONU */}
       <div className="mt-8 text-center">
         <button 
           type="button"
