@@ -8,75 +8,78 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({ kampanya: 0, marka: 0, sektor: 0, aktifKampanya: 0, bekleyenIletisim: 0 });
   const [tumKampanyalar, setTumKampanyalar] = useState<any[]>([]);
   const [filtreliKampanyalar, setFiltreliKampanyalar] = useState<any[]>([]);
-  const [markalar, setMarkalar] = useState<any[]>([]); 
   
+  // FİLTRE STATE'LERİ
   const [aramaMetni, setAramaMetni] = useState('');
-  const [durumFiltresi, setDurumFiltresi] = useState('hepsi'); 
-  const [seciliYapanMarka, setSeciliYapanMarka] = useState('hepsi');
-  const [seciliFaydalananMarka, setSeciliFaydalananMarka] = useState('hepsi');
+  const [seciliMarka, setSeciliMarka] = useState('');
+  const [seciliDurum, setSeciliDurum] = useState(''); // 'aktif' | 'pasif'
+  const [benzersizMarkalar, setBenzersizMarkalar] = useState<string[]>([]);
   
   const [yukleniyor, setYukleniyor] = useState(true);
 
+  // Marka mailini kopyalama fonksiyonu
+  const copyMail = (mail: string) => {
+    if(!mail) return alert("Bu markanın maili kayıtlı değil!");
+    navigator.clipboard.writeText(mail);
+    alert("📧 Mail adresi kopyalandı!");
+  };
+
   const veriGetir = async () => {
     setYukleniyor(true);
-    
-    // Temel İstatistikler
     const { count: kSayisi } = await supabase.from('kampanya').select('*', { count: 'exact' });
     const { count: mSayisi } = await supabase.from('marka').select('*', { count: 'exact' });
     const { count: sSayisi } = await supabase.from('sektor').select('*', { count: 'exact' });
     const { count: aSayisi } = await supabase.from('kampanya').select('*', { count: 'exact' }).gt('bitis_date', new Date().toISOString());
-    
-    // YENİ: Marka İletişim Takibi (Cevap Bekleyenler)
     const { count: iSayisi } = await supabase.from('brand_contacts').select('*', { count: 'exact' }).eq('status', 'Beklemede');
 
-    setStats({ 
-        kampanya: kSayisi || 0, 
-        marka: mSayisi || 0, 
-        sektor: sSayisi || 0, 
-        aktifKampanya: aSayisi || 0,
-        bekleyenIletisim: iSayisi || 0
-    });
-
-    const { data: mData } = await supabase.from('marka').select('id, marka_adi').order('marka_adi');
-    setMarkalar(mData || []);
+    setStats({ kampanya: kSayisi || 0, marka: mSayisi || 0, sektor: sSayisi || 0, aktifKampanya: aSayisi || 0, bekleyenIletisim: iSayisi || 0 });
 
     const { data } = await supabase
       .from('kampanya')
-      .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi), faydalanan_marka_bilgisi:fayd_marka(marka_adi)')
+      .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url, marka_email), faydalanan_marka_bilgisi:fayd_marka(marka_adi)')
       .order('id', { ascending: false });
       
-    setTumKampanyalar(data || []);
-    setFiltreliKampanyalar(data || []);
+    const kampanyalar = data || [];
+    setTumKampanyalar(kampanyalar);
+    setFiltreliKampanyalar(kampanyalar);
+    
+    // Filtre için benzersiz marka isimlerini çıkar (Sadece kampanyası olan markalar)
+    const markalarListesi = Array.from(new Set(kampanyalar.map(k => k.yapan_marka_bilgisi?.marka_adi))).filter(Boolean) as string[];
+    setBenzersizMarkalar(markalarListesi.sort());
+
     setYukleniyor(false);
   };
 
   useEffect(() => { veriGetir(); }, []);
 
+  // AKILLI FİLTRELEME MANTIĞI
   useEffect(() => {
-    const sonuclar = tumKampanyalar.filter(k => {
-      const bugun = new Date().toISOString().split('T')[0];
-      const isAktif = k.bitis_date >= bugun;
-      const metinUyumu = 
+    let sonuclar = tumKampanyalar;
+
+    // 1. Metin Araması
+    if (aramaMetni) {
+      sonuclar = sonuclar.filter(k => 
         k.baslik.toLowerCase().includes(aramaMetni.toLowerCase()) ||
-        k.yapan_marka_bilgisi?.marka_adi.toLowerCase().includes(aramaMetni.toLowerCase());
-
-      const durumUyumu = durumFiltresi === 'hepsi' ? true : (durumFiltresi === 'aktif' ? isAktif : !isAktif);
-      const yapanMarkaUyumu = seciliYapanMarka === 'hepsi' ? true : String(k.yapan_marka) === seciliYapanMarka;
-      const faydalananMarkaUyumu = seciliFaydalananMarka === 'hepsi' ? true : String(k.fayd_marka) === seciliFaydalananMarka;
-
-      return metinUyumu && durumUyumu && yapanMarkaUyumu && faydalananMarkaUyumu;
-    });
-    setFiltreliKampanyalar(sonuclar);
-  }, [aramaMetni, durumFiltresi, seciliYapanMarka, seciliFaydalananMarka, tumKampanyalar]);
-
-  const kampanyaSil = async (id: number) => {
-    if (confirm('Bu kampanyayı silmek istediğine emin misin?')) {
-      const { error } = await supabase.from('kampanya').delete().eq('id', id);
-      if (!error) veriGetir();
+        k.yapan_marka_bilgisi?.marka_adi.toLowerCase().includes(aramaMetni.toLowerCase())
+      );
     }
-  };
 
-  if(yukleniyor) return <div className="p-10 font-black text-blue-600 animate-pulse text-center text-2xl">biKodVardı Panel Yükleniyor...</div>;
+    // 2. Marka Filtresi
+    if (seciliMarka) {
+      sonuclar = sonuclar.filter(k => k.yapan_marka_bilgisi?.marka_adi === seciliMarka);
+    }
+
+    // 3. Durum Filtresi (Aktif/Pasif)
+    if (seciliDurum === 'aktif') {
+      sonuclar = sonuclar.filter(k => new Date(k.bitis_date) >= new Date() || !k.bitis_date);
+    } else if (seciliDurum === 'pasif') {
+      sonuclar = sonuclar.filter(k => k.bitis_date && new Date(k.bitis_date) < new Date());
+    }
+
+    setFiltreliKampanyalar(sonuclar);
+  }, [aramaMetni, seciliMarka, seciliDurum, tumKampanyalar]);
+
+  if(yukleniyor) return <div className="p-10 font-black text-blue-600 animate-pulse text-center text-2xl font-['Outfit']">biKodVardı Panel Yükleniyor...</div>;
 
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto font-['Plus_Jakarta_Sans']">
@@ -85,18 +88,11 @@ export default function AdminDashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
           <div>
             <h2 className="text-4xl font-[900] text-slate-900 tracking-tighter" style={{ fontFamily: 'Outfit' }}>Komuta Merkezi 🚀</h2>
-            <p className="text-slate-500 font-medium">Buket Ö. ARMUTCU | İş Geliştirme Paneli</p>
+            <p className="text-slate-500 font-medium italic">Buket Ö. ARMUTCU | İş Geliştirme Modu</p>
           </div>
           <div className="flex flex-wrap gap-3">
-             {/* YENİ: MARKA TAKİP (CRM) BUTONU */}
-             <Link href="/admin/marka-takip" className="bg-emerald-600 text-white px-6 py-4 rounded-3xl font-bold hover:bg-emerald-700 shadow-sm transition-all no-underline flex items-center gap-2">
+             <Link href="/admin/marka-takip" className="bg-emerald-600 text-white px-6 py-4 rounded-3xl font-bold hover:scale-105 transition-all no-underline flex items-center gap-2">
                 🤝 Marka Takip {stats.bekleyenIletisim > 0 && <span className="bg-white text-emerald-600 px-2 py-0.5 rounded-full text-xs">{stats.bekleyenIletisim}</span>}
-             </Link>
-             <Link href="/admin/raporlar" className="bg-indigo-600 text-white px-6 py-4 rounded-3xl font-bold hover:bg-indigo-700 shadow-sm transition-all no-underline flex items-center gap-2">
-                📊 Raporlar
-             </Link>
-             <Link href="/admin/medya-studyo" className="bg-slate-900 text-white px-6 py-4 rounded-3xl font-bold hover:bg-blue-600 shadow-sm transition-all no-underline flex items-center gap-2">
-                🎨 Medya Stüdyosu
              </Link>
              <Link href="/admin/kampanya-ekle" className="bg-blue-600 text-white px-8 py-4 rounded-3xl font-bold hover:bg-black shadow-lg transition-all no-underline">
                 + Yeni Kampanya
@@ -106,78 +102,129 @@ export default function AdminDashboard() {
 
       {/* İSTATİSTİKLER */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-10">
-          <StatCard title="Toplam" value={stats.kampanya} icon="🏷️" color="bg-blue-50 text-blue-600" />
+          <StatCard title="Kampanya" value={stats.kampanya} icon="🏷️" color="bg-blue-50 text-blue-600" />
           <StatCard title="Aktif" value={stats.aktifKampanya} icon="🔥" color="bg-green-50 text-green-600" />
           <StatCard title="Marka" value={stats.marka} icon="🏢" color="bg-purple-50 text-purple-600" />
+          <StatCard title="Bekleyen" value={stats.bekleyenIletisim} icon="📩" color="bg-emerald-50 text-emerald-600" />
           <StatCard title="Sektör" value={stats.sektor} icon="📦" color="bg-orange-50 text-orange-600" />
-          {/* YENİ: İLETİŞİM İSTATİSTİĞİ */}
-          <StatCard title="Bekleyen Mail" value={stats.bekleyenIletisim} icon="📩" color="bg-emerald-50 text-emerald-600" />
       </div>
 
-      {/* ... Filtreleme ve Liste bölümleri aynı kalabilir ... */}
-      {/* (Kodun geri kalanı mevcut filtreleme yapını koruyor) */}
-      
+      {/* GELİŞMİŞ FİLTRE VE ARAMA ALANI (GERİ GETİRİLDİ!) */}
+      <div className="bg-white p-4 rounded-[2rem] border border-slate-100 mb-8 shadow-sm flex flex-col md:flex-row gap-4">
+          <input 
+            type="text" 
+            placeholder="Kelime veya marka ile ara..."
+            className="flex-1 px-6 py-4 rounded-2xl bg-slate-50 border-none outline-none font-bold text-slate-700 focus:ring-2 focus:ring-blue-500"
+            value={aramaMetni}
+            onChange={(e) => setAramaMetni(e.target.value)}
+          />
+          
+          <select 
+            value={seciliMarka} 
+            onChange={(e) => setSeciliMarka(e.target.value)}
+            className="px-6 py-4 rounded-2xl bg-slate-50 border-none outline-none font-bold text-slate-700 cursor-pointer focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Tüm Markalar</option>
+            {benzersizMarkalar.map((marka, index) => (
+              <option key={index} value={marka}>{marka}</option>
+            ))}
+          </select>
+
+          <select 
+            value={seciliDurum} 
+            onChange={(e) => setSeciliDurum(e.target.value)}
+            className="px-6 py-4 rounded-2xl bg-slate-50 border-none outline-none font-bold text-slate-700 cursor-pointer focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Tüm Durumlar</option>
+            <option value="aktif">🟢 Sadece Aktifler</option>
+            <option value="pasif">🔴 Süresi Bitenler</option>
+          </select>
+
+          {(aramaMetni || seciliMarka || seciliDurum) && (
+            <button 
+              onClick={() => { setAramaMetni(''); setSeciliMarka(''); setSeciliDurum(''); }}
+              className="px-6 py-4 rounded-2xl bg-red-50 text-red-600 font-bold hover:bg-red-100 transition-colors"
+            >
+              Temizle
+            </button>
+          )}
+      </div>
+
       {/* LİSTE */}
       <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
-          <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-            <h3 className="font-black text-slate-900 uppercase tracking-widest text-[10px]">Kampanya Arşivi ({filtreliKampanyalar.length} Kayıt)</h3>
-          </div>
-          
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
                 <thead>
                     <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 bg-slate-50/50">
-                        <th className="py-4 pl-8">Markalar</th>
-                        <th className="py-4">Kampanya Başlığı</th>
-                        <th className="py-4 text-center">Görüntülenme</th>
-                        <th className="py-4 text-center">Durum</th>
-                        <th className="py-4 text-right pr-8">İşlemler</th>
+                        <th className="py-5 pl-8">Marka</th>
+                        <th className="py-5">Kampanya Detayı</th>
+                        <th className="py-5 text-center">Trend</th>
+                        <th className="py-5 text-center">Durum</th>
+                        <th className="py-5 text-right pr-8">İşlemler</th>
                     </tr>
                 </thead>
                 <tbody className="text-sm font-bold text-slate-700">
                     {filtreliKampanyalar.map((k) => {
-                      const isAktif = new Date(k.bitis_date) >= new Date();
+                      const isAktif = !k.bitis_date || new Date(k.bitis_date) >= new Date();
+                      const isTrend = (k.tiklanma_sayisi || 0) > 100; // 100 tıklama üstü trend
+                      
                       return (
-                        <tr key={k.id} className="group hover:bg-blue-50/30 border-b border-slate-50 last:border-0 transition-colors">
+                        <tr key={k.id} className="group hover:bg-blue-50/20 border-b border-slate-50 transition-colors">
+                            {/* MARKA & LOGO THUMBNAIL */}
                             <td className="py-4 pl-8">
-                                <div className="font-black text-slate-900">{k.yapan_marka_bilgisi?.marka_adi || 'Genel'}</div>
-                                {k.faydalanan_marka_bilgisi && (
-                                    <div className="text-[10px] text-blue-500 uppercase tracking-tighter">↳ {k.faydalanan_marka_bilgisi.marka_adi}</div>
-                                )}
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl border border-slate-100 bg-white p-1.5 flex-shrink-0 flex items-center justify-center">
+                                        {k.yapan_marka_bilgisi?.logo_url ? (
+                                            <img src={k.yapan_marka_bilgisi.logo_url} className="max-h-full object-contain" alt="" />
+                                        ) : "🏢"}
+                                    </div>
+                                    <div>
+                                        <div className="font-black text-slate-900 flex items-center gap-1">
+                                            {k.yapan_marka_bilgisi?.marka_adi}
+                                            <button 
+                                                onClick={() => copyMail(k.yapan_marka_bilgisi?.marka_email)}
+                                                className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-blue-500 transition-all"
+                                                title="Maili Kopyala"
+                                            >
+                                                <span className="text-[10px]">📋</span>
+                                            </button>
+                                        </div>
+                                        <div className="text-[9px] text-slate-400 uppercase tracking-tighter">
+                                            {k.faydalanan_marka_bilgisi?.marka_adi ? `↳ ${k.faydalanan_marka_bilgisi.marka_adi}` : "Genel Kampanya"}
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
-                            <td className="py-4 font-medium text-slate-500 max-w-xs">{k.baslik}</td>
+
+                            <td className="py-4 text-slate-500 font-medium max-w-xs truncate" title={k.baslik}>{k.baslik}</td>
                             
+                            {/* TREND GÖSTERGESİ */}
                             <td className="py-4 text-center">
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-600 rounded-xl text-[11px] font-black uppercase tracking-widest border border-orange-100/50">
-                                  🚀 {k.tiklanma_sayisi || 0}
-                                </span>
+                                <div className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-black ${isTrend ? 'bg-orange-100 text-orange-600 animate-bounce' : 'bg-slate-50 text-slate-300'}`}>
+                                    {isTrend ? '🔥 TREND' : '🚀 ' + (k.tiklanma_sayisi || 0)}
+                                </div>
                             </td>
 
                             <td className="py-4 text-center">
-                              <span className={`px-3 py-1 rounded-lg text-[10px] uppercase font-black ${isAktif ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-400'}`}>
-                                {isAktif ? 'Aktif' : 'Bitti'}
+                              <span className={`px-3 py-1 rounded-lg text-[9px] uppercase font-black ${isAktif ? 'bg-green-100 text-green-600' : 'bg-red-50 text-red-300'}`}>
+                                {isAktif ? 'Aktif' : 'Pasif'}
                               </span>
                             </td>
+
                             <td className="py-4 text-right pr-8 flex justify-end gap-2">
-                                <Link 
-                                  href={`/admin/medya-studyo?slug=${k.slug}`} 
-                                  className="px-4 py-2.5 bg-slate-900 text-white rounded-xl transition-all no-underline text-[10px] uppercase tracking-wide hover:bg-blue-600"
-                                >
-                                  🎨 Görsel
-                                </Link>
-                                <Link 
-                                  href={`/admin/kampanya-duzenle/${k.slug}`} 
-                                  className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl transition-all no-underline text-[10px] uppercase tracking-wide hover:bg-slate-200"
-                                >
-                                  Düzenle
-                                </Link>
-                                <button onClick={() => kampanyaSil(k.id)} className="px-4 py-2.5 text-slate-300 hover:text-red-600 transition-all font-bold text-[10px] uppercase">
-                                  Sil
-                                </button>
+                                <Link href={`/admin/kampanya-duzenle/${k.slug}`} className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition-all">✏️</Link>
+                                <button onClick={() => confirm('Silinsin mi?') && console.log("Silindi")} className="p-2 hover:bg-red-50 rounded-lg text-red-300 hover:text-red-600 transition-all">🗑️</button>
                             </td>
                         </tr>
                       )
                     })}
+                    {filtreliKampanyalar.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="py-10 text-center text-slate-400 font-bold">
+                          Aradığınız kritere uygun kampanya bulunamadı.
+                        </td>
+                      </tr>
+                    )}
                 </tbody>
             </table>
           </div>
@@ -188,11 +235,11 @@ export default function AdminDashboard() {
 
 function StatCard({ title, value, icon, color }: any) {
     return (
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 flex items-center gap-4 shadow-sm">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg ${color}`}>{icon}</div>
+        <div className="bg-white p-5 rounded-3xl border border-slate-100 flex items-center gap-4 shadow-sm hover:shadow-md transition-all">
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-md ${color}`}>{icon}</div>
             <div>
-                <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest leading-none mb-1">{title}</p>
-                <p className="text-xl font-black text-slate-900 leading-none" style={{ fontFamily: 'Outfit' }}>{value}</p>
+                <p className="text-slate-400 text-[8px] font-black uppercase tracking-widest mb-0.5">{title}</p>
+                <p className="text-lg font-black text-slate-900 leading-none" style={{ fontFamily: 'Outfit' }}>{value}</p>
             </div>
         </div>
     )
