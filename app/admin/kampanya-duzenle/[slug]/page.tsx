@@ -8,16 +8,14 @@ export default function KampanyaDuzenle({ params }: { params: Promise<{ slug: st
   const resolvedParams = use(params);
   const router = useRouter();
   
-  // Yükleniyor durumu true başlar (veriler gelene kadar)
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [islemYapiliyor, setIslemYapiliyor] = useState(false); // Kaydet/Sil butonlarını disable etmek için
   const [kampanyaId, setKampanyaId] = useState<number | null>(null);
   
-  // Dropdown listeleri
   const [markalar, setMarkalar] = useState<any[]>([]);
   const [sektorler, setSektorler] = useState<any[]>([]);
   const [turler, setTurler] = useState<any[]>([]);
 
-  // Form verileri
   const [form, setForm] = useState({
     baslik: '',
     detay: '',
@@ -31,7 +29,6 @@ export default function KampanyaDuzenle({ params }: { params: Promise<{ slug: st
 
   useEffect(() => {
     const verileriGetir = async () => {
-      // 1. Önce Dropdown verilerini çek
       const { data: mData } = await supabase.from('marka').select('id, marka_adi').order('marka_adi');
       const { data: sData } = await supabase.from('sektor').select('id, sektor_adi').order('sektor_adi');
       const { data: tData } = await supabase.from('kampanya_turu').select('id, tur_adi').order('tur_adi');
@@ -40,9 +37,6 @@ export default function KampanyaDuzenle({ params }: { params: Promise<{ slug: st
       setSektorler(sData || []);
       setTurler(tData || []);
 
-      // 2. ŞİMDİ EN ÖNEMLİ KISIM: Kampanya verilerini Slug ile çekip forma dolduruyoruz
-      console.log("Aranan Slug:", resolvedParams.slug); // Konsoldan kontrol etmek için
-
       const { data: kData, error } = await supabase
         .from('kampanya')
         .select('*')
@@ -50,14 +44,13 @@ export default function KampanyaDuzenle({ params }: { params: Promise<{ slug: st
         .single();
 
       if (kData) {
-        // Veriyi bulduk, state'e yüklüyoruz
         setKampanyaId(kData.id); 
         setForm({
           baslik: kData.baslik || '',
           detay: kData.detay || '',
           link: kData.link || '',
           bitis_date: kData.bitis_date || '',
-          yapan_marka: kData.yapan_marka?.toString() || '', // Stringe çevirip select'e veriyoruz
+          yapan_marka: kData.yapan_marka?.toString() || '', 
           fayd_marka: kData.fayd_marka?.toString() || '',
           gecerli_sektor_id: kData.gecerli_sektor_id?.toString() || '',
           kampanya_turu: kData.kampanya_turu?.toString() || ''
@@ -66,7 +59,6 @@ export default function KampanyaDuzenle({ params }: { params: Promise<{ slug: st
         console.error("Kampanya bulunamadı hatası:", error);
       }
       
-      // Yükleme bitti
       setYukleniyor(false);
     };
     verileriGetir();
@@ -75,7 +67,7 @@ export default function KampanyaDuzenle({ params }: { params: Promise<{ slug: st
   const guncelle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!kampanyaId) return;
-    setYukleniyor(true);
+    setIslemYapiliyor(true);
 
     const payload = {
         baslik: form.baslik,
@@ -91,14 +83,37 @@ export default function KampanyaDuzenle({ params }: { params: Promise<{ slug: st
     const { error } = await supabase
       .from('kampanya')
       .update(payload)
-      .eq('id', kampanyaId); // ID üzerinden güncelle
+      .eq('id', kampanyaId); 
 
     if (error) {
       alert('Hata: ' + error.message);
-      setYukleniyor(false);
+      setIslemYapiliyor(false);
     } else {
       alert('✅ Değişiklikler kaydedildi!');
       router.push('/admin');
+    }
+  };
+
+  // 🗑️ YENİ: Kampanya Silme Fonksiyonu
+  const kampanyaSil = async () => {
+    if (!kampanyaId) return;
+
+    const onay = window.confirm(`"${form.baslik}" kampanyasını kalıcı olarak SİLMEK istediğinize emin misiniz? Bu işlem geri alınamaz!`);
+    
+    if (onay) {
+      setIslemYapiliyor(true);
+      const { error } = await supabase
+        .from('kampanya')
+        .delete()
+        .eq('id', kampanyaId);
+
+      if (error) {
+        alert("Hata: " + error.message);
+        setIslemYapiliyor(false);
+      } else {
+        alert('🗑️ Kampanya başarıyla silindi.');
+        router.push('/admin'); // Silince ana listeye geri dön
+      }
     }
   };
 
@@ -110,7 +125,7 @@ export default function KampanyaDuzenle({ params }: { params: Promise<{ slug: st
   );
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto pb-20">
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-3xl font-black text-slate-900 tracking-tight" style={{ fontFamily: 'Outfit' }}>Kampanyayı Düzenle</h2>
         <button onClick={() => router.push('/admin')} className="text-slate-400 font-bold hover:text-black transition-colors text-sm uppercase tracking-wider">Vazgeç</button>
@@ -215,15 +230,29 @@ export default function KampanyaDuzenle({ params }: { params: Promise<{ slug: st
             </div>
         </div>
 
+        {/* KAYDET BUTONU */}
         <button 
-          disabled={yukleniyor}
+          disabled={islemYapiliyor}
           type="submit" 
-          className="w-full bg-blue-600 hover:bg-black text-white p-6 rounded-[2rem] text-xl font-black tracking-tight transition-all shadow-xl"
+          className="w-full bg-blue-600 hover:bg-black text-white p-6 rounded-[2rem] text-xl font-black tracking-tight transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {yukleniyor ? 'Güncelleniyor...' : 'Değişiklikleri Kaydet ✨'}
+          {islemYapiliyor ? 'İşlem Yapılıyor...' : 'Değişiklikleri Kaydet ✨'}
         </button>
 
       </form>
+
+      {/* SİLME BUTONU (Formun dışında, tehlikeli alan) */}
+      <div className="mt-8 text-center">
+        <button 
+          type="button"
+          onClick={kampanyaSil}
+          disabled={islemYapiliyor}
+          className="text-red-500 font-bold hover:text-white hover:bg-red-500 px-6 py-3 rounded-xl transition-all border border-red-100 hover:border-red-500 text-sm disabled:opacity-50"
+        >
+          🗑️ Bu Kampanyayı Kalıcı Olarak Sil
+        </button>
+      </div>
+
     </div>
   );
 }

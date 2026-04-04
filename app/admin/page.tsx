@@ -17,11 +17,38 @@ export default function AdminDashboard() {
   
   const [yukleniyor, setYukleniyor] = useState(true);
 
-  // Marka mailini kopyalama fonksiyonu
+  // 📧 Mail Kopyalama Fonksiyonu
   const copyMail = (mail: string) => {
     if(!mail) return alert("Bu markanın maili kayıtlı değil!");
     navigator.clipboard.writeText(mail);
     alert("📧 Mail adresi kopyalandı!");
+  };
+
+  // 🗑️ YENİ: Gerçek Silme Fonksiyonu
+  const kampanyaSil = async (id: number, baslik: string) => {
+    const onay = window.confirm(`"${baslik}" kampanyasını kalıcı olarak silmek istediğinize emin misiniz?`);
+    
+    if (onay) {
+      const { error } = await supabase
+        .from('kampanya')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        alert("Silme işlemi sırasında bir hata oluştu: " + error.message);
+      } else {
+        // Silineni anında ekrandan kaldır (Sayfa yenilemeye gerek kalmaz)
+        setTumKampanyalar(prev => prev.filter(k => k.id !== id));
+        // Filtreli listeyi de anında güncelle
+        setFiltreliKampanyalar(prev => prev.filter(k => k.id !== id));
+        
+        // İstatistikleri de 1 düşür
+        setStats(prev => ({ 
+            ...prev, 
+            kampanya: prev.kampanya - 1 
+        }));
+      }
+    }
   };
 
   const veriGetir = async () => {
@@ -43,7 +70,7 @@ export default function AdminDashboard() {
     setTumKampanyalar(kampanyalar);
     setFiltreliKampanyalar(kampanyalar);
     
-    // Filtre için benzersiz marka isimlerini çıkar (Sadece kampanyası olan markalar)
+    // Filtre için benzersiz marka isimlerini çıkar
     const markalarListesi = Array.from(new Set(kampanyalar.map(k => k.yapan_marka_bilgisi?.marka_adi))).filter(Boolean) as string[];
     setBenzersizMarkalar(markalarListesi.sort());
 
@@ -56,7 +83,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     let sonuclar = tumKampanyalar;
 
-    // 1. Metin Araması
     if (aramaMetni) {
       sonuclar = sonuclar.filter(k => 
         k.baslik.toLowerCase().includes(aramaMetni.toLowerCase()) ||
@@ -64,14 +90,12 @@ export default function AdminDashboard() {
       );
     }
 
-    // 2. Marka Filtresi
     if (seciliMarka) {
       sonuclar = sonuclar.filter(k => k.yapan_marka_bilgisi?.marka_adi === seciliMarka);
     }
 
-    // 3. Durum Filtresi (Aktif/Pasif)
     if (seciliDurum === 'aktif') {
-      sonuclar = sonuclar.filter(k => new Date(k.bitis_date) >= new Date() || !k.bitis_date);
+      sonuclar = sonuclar.filter(k => !k.bitis_date || new Date(k.bitis_date) >= new Date());
     } else if (seciliDurum === 'pasif') {
       sonuclar = sonuclar.filter(k => k.bitis_date && new Date(k.bitis_date) < new Date());
     }
@@ -109,7 +133,7 @@ export default function AdminDashboard() {
           <StatCard title="Sektör" value={stats.sektor} icon="📦" color="bg-orange-50 text-orange-600" />
       </div>
 
-      {/* GELİŞMİŞ FİLTRE VE ARAMA ALANI (GERİ GETİRİLDİ!) */}
+      {/* GELİŞMİŞ FİLTRE VE ARAMA ALANI */}
       <div className="bg-white p-4 rounded-[2rem] border border-slate-100 mb-8 shadow-sm flex flex-col md:flex-row gap-4">
           <input 
             type="text" 
@@ -213,7 +237,12 @@ export default function AdminDashboard() {
 
                             <td className="py-4 text-right pr-8 flex justify-end gap-2">
                                 <Link href={`/admin/kampanya-duzenle/${k.slug}`} className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition-all">✏️</Link>
-                                <button onClick={() => confirm('Silinsin mi?') && console.log("Silindi")} className="p-2 hover:bg-red-50 rounded-lg text-red-300 hover:text-red-600 transition-all">🗑️</button>
+                                <button 
+                                  onClick={() => kampanyaSil(k.id, k.baslik)} 
+                                  className="p-2 hover:bg-red-50 rounded-lg text-red-300 hover:text-red-600 transition-all"
+                                >
+                                  🗑️
+                                </button>
                             </td>
                         </tr>
                       )
