@@ -128,6 +128,10 @@ export default function AdminDashboard() {
              <Link href="/admin/kampanya-ekle" className="bg-blue-600 text-white px-8 py-4 rounded-3xl font-bold hover:bg-black shadow-lg transition-all no-underline">
                 + Yeni Kampanya
              </Link>
+             {/* YENİ EKLENEN BLOG BUTONU */}
+             <Link href="/admin/blog-ekle" className="bg-orange-500 text-white px-6 py-4 rounded-3xl font-bold hover:scale-105 transition-all no-underline flex items-center gap-2 shadow-lg">
+                ✍️ Yeni Blog Yazısı
+             </Link>
           </div>
       </div>
 
