@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "928732097690",
+    "project_id": "bikodvardi-e9d58",
+    "storage_bucket": "bikodvardi-e9d58.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:928732097690:android:4ec6ef62f0431857bd8323",
+        "android_client_info": {
+          "package_name": "com.bikodvardi.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXtNpL8b8IjNysCefKOT3NOwKDQaQBtEo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
