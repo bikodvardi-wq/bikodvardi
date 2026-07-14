@@ -1,0 +1,14 @@
+{
+  "name": "biKodVardı | En Güncel İndirim Kodları ve Kampanyalar",
+  "short_name": "biKodVardı",
+  "description": "Güncel banka kampanyaları, indirim kodları ve marka fırsatları tek yerde.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D0F14",
+  "theme_color": "#2563eb",
+  "lang": "tr",
+  "icons": [
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

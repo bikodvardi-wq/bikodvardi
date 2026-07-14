@@ -1,5 +1,6 @@
 import { GoogleAnalytics } from '@next/third-parties/google'  
 import type { Metadata, Viewport } from "next";
+// @ts-ignore: CSS import declarations may require ambient module definitions
 import "./globals.css";
 import Script from "next/script";
 import { AppBackButton } from "./AppBackButton"; // "./components/" kısmını sildik
@@ -54,6 +55,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="tr">
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap"
+          rel="stylesheet"
+        />
         <Script
           id="adsbygoogle-init"
           strategy="afterInteractive"
