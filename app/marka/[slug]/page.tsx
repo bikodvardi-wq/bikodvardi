@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 
 // ISR: Her 1 saatte bir yenile
 export const revalidate = 3600; 
@@ -194,9 +195,9 @@ export default async function MarkaDetay({ params }: { params: Promise<{ slug: s
           </div>
 
           <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="w-20 h-20 bg-white text-[#0F172A] rounded-[1.8rem] shadow-xl flex items-center justify-center p-3 border border-slate-100 ring-4 ring-slate-50 overflow-hidden">
+            <div className="relative w-20 h-20 bg-white text-[#0F172A] rounded-[1.8rem] shadow-xl flex items-center justify-center p-3 border border-slate-100 ring-4 ring-slate-50 overflow-hidden">
               {marka.logo_url ? (
-                <img src={marka.logo_url} className="max-h-full object-contain" alt={`${marka.marka_adi} indirim kodu`} />
+                <Image src={marka.logo_url} fill sizes="80px" className="object-contain p-3" alt={`${marka.marka_adi} indirim kodu`} />
               ) : (
                 <span className="text-3xl font-black text-slate-900">{marka.marka_adi?.charAt(0)}</span>
               )}
@@ -249,9 +250,9 @@ export default async function MarkaDetay({ params }: { params: Promise<{ slug: s
 
                   <div className="flex justify-between items-start mb-6">
                     <div className="inline-flex items-center gap-2.5 bg-white px-2 py-1.5 rounded-xl shadow-lg">
-                      <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center p-1.5 text-[#0F172A] font-black text-xs">
+                      <div className="relative w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center p-1.5 text-[#0F172A] font-black text-xs">
                         {yapanMarkaLogo ? (
-                          <img src={yapanMarkaLogo} className="w-full h-full object-contain" alt={yapanMarkaAdi} />
+                          <Image src={yapanMarkaLogo} fill sizes="32px" className="object-contain p-1.5" alt={yapanMarkaAdi} />
                         ) : (
                           yapanMarkaAdi ? yapanMarkaAdi[0] : 'F'
                         )}

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface HomeClientProps {
   sektorler: any[];
@@ -35,7 +36,6 @@ export default function HomeClient({
   // Sabit Popüler Aramalar
   const populerAramalar = ["Trendyol", "Spor", "Kozmetik", "Ayakkabı", "Teknoloji"];
 
-
   const aramaYap = (terim: string) => {
     setAramaTerimi(terim);
     if (terim.length > 1) {
@@ -60,6 +60,14 @@ export default function HomeClient({
   const hizliArama = (terim: string) => {
     aramaYap(terim);
   };
+
+  // Google'ın "Site içinde ara" (SearchAction) özelliğinden gelen ?ara= parametresini yakala
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('ara');
+    if (q) aramaYap(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filtrelenmisKampanyalar = tumAktifKampanyalar
     .filter(k => {
@@ -138,7 +146,7 @@ export default function HomeClient({
                     <Link key={index} href={item.tip === 'sektor' ? `/sektor/${item.slug}` : `/marka/${item.slug}`} className="flex items-center justify-between p-4 hover:bg-blue-50 rounded-2xl transition no-underline text-slate-900 font-bold group">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm">
-                          {item.tip === 'sektor' ? <span className="text-sm">📁</span> : item.logo_url ? <img src={item.logo_url} className="max-w-[16px] max-h-[16px] object-contain" alt="" /> : <span className="text-[10px] font-black">{item.marka_adi.charAt(0)}</span>}
+                          {item.tip === 'sektor' ? <span className="text-sm">📁</span> : item.logo_url ? <Image src={item.logo_url} width={16} height={16} className="max-w-[16px] max-h-[16px] object-contain" alt="" /> : <span className="text-[10px] font-black">{item.marka_adi.charAt(0)}</span>}
                         </div>
                         <span className="group-hover:text-blue-600 transition-colors">{item.tip === 'sektor' ? item.sektor_adi : item.marka_adi} {item.tip === 'marka' && "İndirimleri"}</span>
                       </div>
@@ -227,7 +235,7 @@ export default function HomeClient({
                   <Link key={k.id} href={`/kampanya/${k.slug}`} className="group bg-white rounded-[2.5rem] p-6 border border-slate-200 overflow-hidden hover:shadow-2xl hover:border-blue-300 transition-all no-underline">
                     <div className="flex justify-between items-start mb-4">
                       <div className="bg-slate-50 p-2 rounded-xl">
-                        {k.yapan_marka_bilgisi?.logo_url ? <img src={k.yapan_marka_bilgisi.logo_url} className="h-8 w-auto object-contain" alt="" /> : <span className="text-slate-600 font-bold text-sm">{k.yapan_marka_bilgisi?.marka_adi?.charAt(0) || '?'}</span>}
+                        {k.yapan_marka_bilgisi?.logo_url ? <Image src={k.yapan_marka_bilgisi.logo_url} width={32} height={32} className="h-8 w-auto object-contain" alt="" /> : <span className="text-slate-600 font-bold text-sm">{k.yapan_marka_bilgisi?.marka_adi?.charAt(0) || '?'}</span>}
                       </div>
                       <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">
                         {kampanyaTurleri.find(t => t.id === k.kampanya_turu)?.tur_adi || 'Fırsat'}
@@ -264,7 +272,7 @@ export default function HomeClient({
                   <div className="relative z-10">
                     <div className="flex justify-between items-start mb-6">
                       <div className="bg-white p-2.5 rounded-2xl shadow-lg">
-                        {k.yapan_marka_bilgisi?.logo_url ? <img src={k.yapan_marka_bilgisi.logo_url} className="h-6 w-auto object-contain" alt="" /> : <span className="text-black font-black text-xs">{k.yapan_marka_bilgisi?.marka_adi?.charAt(0) || '?'}</span>}
+                        {k.yapan_marka_bilgisi?.logo_url ? <Image src={k.yapan_marka_bilgisi.logo_url} width={24} height={24} className="h-6 w-auto object-contain" alt="" /> : <span className="text-black font-black text-xs">{k.yapan_marka_bilgisi?.marka_adi?.charAt(0) || '?'}</span>}
                       </div>
                       <span className="bg-green-500 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest animate-bounce">BEDAVA</span>
                     </div>
@@ -289,8 +297,8 @@ export default function HomeClient({
                 <div className="relative z-10">
                   <div className="flex justify-between items-start mb-6">
                     <span className="bg-blue-600 text-[8px] font-black text-white px-3 py-1 rounded-full uppercase tracking-widest">YENİ</span>
-                    <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center p-2 border border-slate-100">
-                      {k.yapan_marka_bilgisi?.logo_url ? <img src={k.yapan_marka_bilgisi.logo_url} alt="" className="max-h-full object-contain" /> : <span className="text-xs font-black text-slate-600">{k.yapan_marka_bilgisi?.marka_adi?.charAt(0) || '?'}</span>}
+                    <div className="relative w-10 h-10 bg-white rounded-2xl flex items-center justify-center p-2 border border-slate-100">
+                      {k.yapan_marka_bilgisi?.logo_url ? <Image src={k.yapan_marka_bilgisi.logo_url} fill sizes="40px" alt="" className="object-contain p-2" /> : <span className="text-xs font-black text-slate-600">{k.yapan_marka_bilgisi?.marka_adi?.charAt(0) || '?'}</span>}
                     </div>
                   </div>
                   <h4 className="text-slate-900 font-black text-xl leading-tight mb-2 group-hover:text-blue-600 transition-colors h-14 overflow-hidden" style={{ fontFamily: 'Outfit' }}>{k.baslik}</h4>

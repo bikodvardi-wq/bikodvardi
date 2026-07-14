@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Metadata } from 'next';
+import Image from 'next/image';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
@@ -84,8 +85,8 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
         </header>
 
         {yazi.kapak_gorseli && (
-          <div className="w-full h-[300px] md:h-[400px] rounded-[3rem] overflow-hidden mb-16 shadow-2xl">
-            <img src={yazi.kapak_gorseli} alt={yazi.baslik} className="w-full h-full object-cover" />
+          <div className="relative w-full h-[300px] md:h-[400px] rounded-[3rem] overflow-hidden mb-16 shadow-2xl">
+            <Image src={yazi.kapak_gorseli} alt={yazi.baslik} fill priority sizes="(max-width: 768px) 100vw, 768px" className="object-cover" />
           </div>
         )}
 
