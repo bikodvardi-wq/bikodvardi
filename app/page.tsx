@@ -90,7 +90,10 @@ export default async function Home() {
     });
 
     return { ...sektor, firsatSayisi: aktifKampanyaSet.size };
-  }).sort((a: any, b: any) => b.firsatSayisi - a.firsatSayisi);
+  })
+    // Aktif kodu olmayan kategorileri ana sayfada öne çıkarmıyoruz (boş sayfa deneyimini önlemek için)
+    .filter((sektor: any) => sektor.firsatSayisi > 0)
+    .sort((a: any, b: any) => b.firsatSayisi - a.firsatSayisi);
 
   const populerMarkalar = mData.map((m: any) => ({
     ...m,

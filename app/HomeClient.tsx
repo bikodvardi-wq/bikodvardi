@@ -386,6 +386,15 @@ export default function HomeClient({
                 Türkiye'nin en güncel <strong>indirim kodu</strong> ve <strong>kampanya</strong> platformu.
               </p>
             </div>
+            <div className="space-y-4">
+              <h4 className="text-slate-900 font-black uppercase text-xs tracking-widest" style={{ fontFamily: 'Outfit' }}>Keşfet</h4>
+              <nav className="flex flex-col gap-2">
+                <Link href="/blog" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">Blog</Link>
+                <Link href="/hakkimizda" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">Hakkımızda</Link>
+                <Link href="/iletisim" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">İletişim</Link>
+                <Link href="/gizlilik-politikasi" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">Gizlilik Politikası</Link>
+              </nav>
+            </div>
             <div className="space-y-4 md:text-right">
               <h4 className="text-slate-900 font-black uppercase text-xs tracking-widest" style={{ fontFamily: 'Outfit' }}>İletişim</h4>
               <a href="mailto:iletisim@bikodvardi.com" className="text-blue-600 font-bold no-underline block">iletisim@bikodvardi.com</a>
