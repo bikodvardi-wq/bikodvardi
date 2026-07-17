@@ -14,6 +14,7 @@ interface HomeClientProps {
   sonSansKampanyalar: any[];
   tumMarkalar: any[];
   stats: { aktif: number; toplam: number; marka: number };
+  reklamAlt: { id: number; baslik: string; gorsel_url: string; link_url: string } | null;
 }
 
 export default function HomeClient({
@@ -26,6 +27,7 @@ export default function HomeClient({
   sonSansKampanyalar,
   tumMarkalar,
   stats,
+  reklamAlt,
 }: HomeClientProps) {
   const [aramaTerimi, setAramaTerimi] = useState("");
   const [aramaSonuclari, setAramaSonuclari] = useState<any[]>([]);
@@ -356,9 +358,20 @@ export default function HomeClient({
         </section>
 
         {/* REKLAM ALANI */}
-        <div className="w-full h-48 bg-white/50 border border-slate-200 border-dashed rounded-[3.5rem] mt-24 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
-          SPONSORLU BAĞLANTI / REKLAM
-        </div>
+        {reklamAlt ? (
+          <a
+            href={reklamAlt.link_url}
+            target="_blank"
+            rel="sponsored noopener noreferrer"
+            className="relative w-full h-48 rounded-[3.5rem] mt-24 overflow-hidden block shadow-xl"
+          >
+            <Image src={reklamAlt.gorsel_url} alt={reklamAlt.baslik} fill sizes="100vw" className="object-cover" />
+          </a>
+        ) : (
+          <div className="w-full h-48 bg-white/50 border border-slate-200 border-dashed rounded-[3.5rem] mt-24 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
+            SPONSORLU BAĞLANTI / REKLAM
+          </div>
+        )}
 
         {/* TOPLULUK / BÜLTEN KUTUSU */}
         <section className="mt-20 bg-blue-600 rounded-[3rem] p-10 md:p-16 text-center text-white shadow-2xl relative overflow-hidden">

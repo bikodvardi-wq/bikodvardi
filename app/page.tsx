@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import type { Metadata } from 'next';
 import HomeClient from './HomeClient';
+import { getReklam } from '@/lib/reklam';
 
 // 🚀 SEO: Ana sayfa artık sunucuda render ediliyor, arama motorları
 // içeriği (kampanyalar, markalar, sektörler) doğrudan HTML içinde görüyor.
@@ -25,7 +26,7 @@ function karistir<T>(array: T[]): T[] {
 export default async function Home() {
   const now = new Date().toISOString();
 
-  const [sRes, tRes, mRes, yeniKRes, ucretsizRes, tumAktifRes, tumToplamRes, markaCountRes] = await Promise.all([
+  const [sRes, tRes, mRes, yeniKRes, ucretsizRes, tumAktifRes, tumToplamRes, markaCountRes, reklamAlt] = await Promise.all([
     supabase.from('sektor').select('id, sektor_adi, slug, gorsel_url'),
     supabase.from('kampanya_turu').select('id, tur_adi'),
     supabase.from('marka').select('id, marka_adi, slug, logo_url, sektor_id, ek_sektor_idler'),
@@ -51,6 +52,7 @@ export default async function Home() {
 
     supabase.from('kampanya').select('id', { count: 'exact', head: true }),
     supabase.from('marka').select('id', { count: 'exact', head: true }),
+    getReklam('anasayfa_alt'),
   ]);
 
   const sData = sRes.data || [];
@@ -117,6 +119,7 @@ export default async function Home() {
       sonSansKampanyalar={sonSansKampanyalar}
       tumMarkalar={mData}
       stats={stats}
+      reklamAlt={reklamAlt}
     />
   );
 }

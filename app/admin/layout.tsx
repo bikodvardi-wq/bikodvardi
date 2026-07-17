@@ -62,6 +62,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <NavItem href="/admin/kampanya-ekle" icon="✨" label="Kampanya Ekle" active={pathname === '/admin/kampanya-ekle'} />
             <NavItem href="/admin/marka-ekle" icon="🏢" label="Marka Ekle" active={pathname === '/admin/marka-ekle'} />
             <NavItem href="/admin/sektor-ekle" icon="📦" label="Sektör Ekle" active={pathname === '/admin/sektor-ekle'} />
+            <NavItem href="/admin/reklam-ekle" icon="📣" label="Reklam Alanları" active={pathname === '/admin/reklam-ekle'} />
         </nav>
 
         {/* ÇIKIŞ VE SİTEYE DÖN BUTONLARI */}

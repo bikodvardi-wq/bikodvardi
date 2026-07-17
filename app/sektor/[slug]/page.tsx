@@ -1,7 +1,9 @@
 import { supabase } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import type { Metadata } from 'next';
+import { getReklam } from '@/lib/reklam';
 
 // ISR: Her 1 saatte bir yenile
 export const revalidate = 3600;
@@ -78,6 +80,11 @@ export default async function SektorDetay({ params }: { params: Promise<{ slug: 
     .from('marka')
     .select('id, marka_adi, slug, logo_url, sektor_id, ek_sektor_idler')
     .or(`sektor_id.eq.${sektor.id},ek_sektor_idler.cs.{${sektor.id}}`);
+
+  const [reklamUst, reklamAlt] = await Promise.all([
+    getReklam('sektor_ust'),
+    getReklam('sektor_alt'),
+  ]);
 
   const kampanyaListesi = kData || [];
   const markaListesi = mData || [];
@@ -161,9 +168,20 @@ export default async function SektorDetay({ params }: { params: Promise<{ slug: 
         </div>
 
         {/* --- REKLAM ALANI 1 (ÜST) --- */}
-        <div className="w-full h-24 bg-white/50 border border-slate-200 border-dashed rounded-3xl mb-8 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
-          REKLAM ALANI
-        </div>
+        {reklamUst ? (
+          <a
+            href={reklamUst.link_url}
+            target="_blank"
+            rel="sponsored noopener noreferrer"
+            className="relative w-full h-24 rounded-3xl mb-8 overflow-hidden block shadow-lg"
+          >
+            <Image src={reklamUst.gorsel_url} alt={reklamUst.baslik} fill sizes="100vw" className="object-cover" />
+          </a>
+        ) : (
+          <div className="w-full h-24 bg-white/50 border border-slate-200 border-dashed rounded-3xl mb-8 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
+            REKLAM ALANI
+          </div>
+        )}
 
         {/* --- MARKA KARTLARI (sadece aktif kod sayısı gösteriliyor) --- */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -205,9 +223,20 @@ export default async function SektorDetay({ params }: { params: Promise<{ slug: 
         </div>
 
         {/* --- REKLAM ALANI 2 (ALT - BÜYÜK) --- */}
-        <div className="w-full h-48 bg-white/50 border border-slate-200 border-dashed rounded-[3rem] mt-16 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
-          SPONSORLU BAĞLANTI / REKLAM
-        </div>
+        {reklamAlt ? (
+          <a
+            href={reklamAlt.link_url}
+            target="_blank"
+            rel="sponsored noopener noreferrer"
+            className="relative w-full h-48 rounded-[3rem] mt-16 overflow-hidden block shadow-xl"
+          >
+            <Image src={reklamAlt.gorsel_url} alt={reklamAlt.baslik} fill sizes="100vw" className="object-cover" />
+          </a>
+        ) : (
+          <div className="w-full h-48 bg-white/50 border border-slate-200 border-dashed rounded-[3rem] mt-16 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
+            SPONSORLU BAĞLANTI / REKLAM
+          </div>
+        )}
 
       </div>
     </main>
