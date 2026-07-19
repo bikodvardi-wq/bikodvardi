@@ -1,8 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Metadata } from 'next';
 import Image from 'next/image';
+import { Metadata } from 'next';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
@@ -40,7 +40,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
     notFound();
   }
 
-  // 🚀 SEO: AdSense Botları İçin Makale Şeması (Article Schema)
+  // SEO: AdSense Botları İçin Makale Şeması (Article Schema)
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -78,9 +78,12 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
             {yazi.baslik}
           </h1>
           <div className="flex items-center justify-center gap-4 text-[11px] font-black uppercase tracking-widest text-slate-400">
-            <span>📅 {new Date(yazi.created_at).toLocaleDateString('tr-TR')}</span>
+            <span className="flex items-center gap-1.5">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              {new Date(yazi.created_at).toLocaleDateString('tr-TR')}
+            </span>
             <span>•</span>
-            <span>✍️ BİKODVARDI REHBER</span>
+            <span>BİKODVARDI REHBER</span>
           </div>
         </header>
 
@@ -103,7 +106,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
           <h3 className="text-3xl font-black mb-4" style={{ fontFamily: 'Outfit' }}>Okuduklarını Fırsata Çevir!</h3>
           <p className="text-slate-500 mb-8 font-medium">Rehberimizi okuduğuna göre artık en iyi fiyatı nasıl bulacağını biliyorsun. Şimdi güncel indirim kodlarına göz atma zamanı.</p>
           <Link href="/" className="inline-block bg-blue-600 text-white font-black px-8 py-4 rounded-full hover:bg-black transition-colors shadow-xl">
-            İndirim Kodlarını Keşfet 🚀
+            İndirim Kodlarını Keşfet
           </Link>
         </div>
       </section>

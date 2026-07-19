@@ -146,7 +146,8 @@ export default function KampanyaIcerik({ kampanya: ilkKampanya, benzerler }: { k
 
           {gecmis && (
             <div className="absolute top-0 left-0 right-0 bg-red-600/90 backdrop-blur-sm text-white text-center py-3 font-bold text-sm z-30 flex items-center justify-center gap-2">
-              ⚠️ <span>Bu kampanya süresi doldu! Yeni fırsatlar için <b>{markaAdi}</b> sayfasına dönün.</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              <span>Bu kampanya süresi doldu! Yeni fırsatlar için <b>{markaAdi}</b> sayfasına dönün.</span>
             </div>
           )}
 
@@ -183,7 +184,7 @@ export default function KampanyaIcerik({ kampanya: ilkKampanya, benzerler }: { k
               <div>
                 <h4 className="font-black text-white text-xs uppercase tracking-widest">Bu kampanya işine yaradı mı?</h4>
                 <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">
-                  {oyVerildi ? "Teşekkürler oy verdiğin için! 🚀✨" : "Sana yardımcı olduysa oyla!"}
+                  {oyVerildi ? "Teşekkürler, oy verdiğin için!" : "Sana yardımcı olduysa oyla!"}
                 </p>
                 {toplamOy > 0 && (
                   <p className="text-xs text-slate-400 mt-1">
@@ -197,14 +198,16 @@ export default function KampanyaIcerik({ kampanya: ilkKampanya, benzerler }: { k
                   disabled={!!oyVerildi}
                   className={`px-6 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-2 ${oyVerildi === 'ise_yaradi' ? 'bg-green-600 text-white opacity-80' : 'bg-white/10 hover:bg-green-600 text-white'}`}
                 >
-                  👍 {kampanya.ise_yaradi_count || 0}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10v12"></path><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"></path></svg>
+                  {kampanya.ise_yaradi_count || 0}
                 </button>
                 <button 
                   onClick={() => oyVer('hatali_count', 'hatali')}
                   disabled={!!oyVerildi}
                   className={`px-6 py-3 rounded-2xl font-black text-xs transition-all flex items-center gap-2 ${oyVerildi === 'hatali' ? 'bg-red-600 text-white opacity-80' : 'bg-white/10 hover:bg-red-600 text-white'}`}
                 >
-                  👎 {kampanya.hatali_count || 0}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 14V2"></path><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z"></path></svg>
+                  {kampanya.hatali_count || 0}
                 </button>
               </div>
             </div>
@@ -291,7 +294,7 @@ export default function KampanyaIcerik({ kampanya: ilkKampanya, benzerler }: { k
         </div>
       </div>
 
-      {/* 🚀 YENİ: MOBİL İÇİN YAPIŞKAN CTA BUTONU (Sticky Bottom CTA) */}
+      {/* YENİ: MOBİL İÇİN YAPIŞKAN CTA BUTONU (Sticky Bottom CTA) */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-slate-100 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-50 flex gap-2">
          {disLink ? (
             <a 

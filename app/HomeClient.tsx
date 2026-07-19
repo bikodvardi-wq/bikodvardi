@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { supabase } from '@/lib/supabase';
 
 interface HomeClientProps {
   sektorler: any[];
@@ -93,6 +94,41 @@ export default function HomeClient({
     setSeciliTur("");
   };
 
+  // --- Bülten Aboneliği ---
+  const [aboneEmail, setAboneEmail] = useState("");
+  const [aboneDurum, setAboneDurum] = useState<'bos' | 'gonderiliyor' | 'basarili' | 'hata'>('bos');
+  const [aboneHataMesaji, setAboneHataMesaji] = useState('');
+
+  const aboneOl = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const gecerliEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(aboneEmail);
+    if (!gecerliEmail) {
+      setAboneDurum('hata');
+      setAboneHataMesaji('Lütfen geçerli bir e-posta adresi gir.');
+      return;
+    }
+
+    setAboneDurum('gonderiliyor');
+
+    const { error } = await supabase.from('abone').insert([{ email: aboneEmail }]);
+
+    if (error) {
+      if (error.code === '23505') {
+        // unique constraint - zaten kayıtlı
+        setAboneDurum('hata');
+        setAboneHataMesaji('Bu e-posta zaten kayıtlı — teşekkürler, zaten kulübümüzdesin!');
+      } else {
+        setAboneDurum('hata');
+        setAboneHataMesaji('Bir şeyler ters gitti, birazdan tekrar dener misin?');
+      }
+      return;
+    }
+
+    setAboneDurum('basarili');
+    setAboneEmail('');
+  };
+
   return (
     <main className="min-h-screen bg-[#F8FAFC] font-['Plus_Jakarta_Sans'] text-slate-900 text-left">
       <nav className="sticky top-0 z-[60] bg-white/80 backdrop-blur-md border-b border-slate-200 py-4 px-4 md:px-8 flex justify-between items-center">
@@ -103,7 +139,9 @@ export default function HomeClient({
         </Link>
         <div className="flex gap-3">
           <a href="https://wa.me/channel/LINKIN" target="_blank" className="hidden md:flex items-center gap-2 text-sm font-bold text-green-600 bg-green-50 px-4 py-2 rounded-full hover:bg-green-100 transition no-underline border border-green-100">WhatsApp</a>
-          <a href="https://t.me/bikodvardi" target="_blank" className="w-10 h-10 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition border border-blue-100 no-underline">🚀</a>
+          <a href="https://t.me/bikodvardi" target="_blank" className="w-10 h-10 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition border border-blue-100 no-underline">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          </a>
         </div>
       </nav>
 
@@ -111,7 +149,9 @@ export default function HomeClient({
         <header className="text-center pt-10 md:pt-16 pb-12 max-w-4xl mx-auto">
           <div className="flex flex-wrap justify-center gap-3 mb-8">
              <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
-                <span className="text-orange-500 text-xs">📦</span>
+                <span className="text-orange-500">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+                </span>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{stats.toplam} TOPLAM KOD</span>
              </div>
              <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
@@ -148,7 +188,7 @@ export default function HomeClient({
                     <Link key={index} href={item.tip === 'sektor' ? `/sektor/${item.slug}` : `/marka/${item.slug}`} className="flex items-center justify-between p-4 hover:bg-blue-50 rounded-2xl transition no-underline text-slate-900 font-bold group">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm">
-                          {item.tip === 'sektor' ? <span className="text-sm">📁</span> : item.logo_url ? <Image src={item.logo_url} width={16} height={16} className="max-w-[16px] max-h-[16px] object-contain" alt="" /> : <span className="text-[10px] font-black">{item.marka_adi.charAt(0)}</span>}
+                          {item.tip === 'sektor' ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path></svg> : item.logo_url ? <Image src={item.logo_url} width={16} height={16} className="max-w-[16px] max-h-[16px] object-contain" alt="" /> : <span className="text-[10px] font-black">{item.marka_adi.charAt(0)}</span>}
                         </div>
                         <span className="group-hover:text-blue-600 transition-colors">{item.tip === 'sektor' ? item.sektor_adi : item.marka_adi} {item.tip === 'marka' && "İndirimleri"}</span>
                       </div>
@@ -228,7 +268,7 @@ export default function HomeClient({
             </div>
             {filtrelenmisKampanyalar.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-3xl shadow border border-slate-200 p-8">
-                <p className="text-lg font-medium mb-2">Seçtiğin kriterlere uyan fırsat bulamadık 😔</p>
+                <p className="text-lg font-medium mb-2">Seçtiğin kriterlere uyan fırsat bulamadık.</p>
                 <p className="text-sm">Filtreleri değiştir, arama yap veya kategorilere göz at!</p>
               </div>
             ) : (
@@ -265,7 +305,7 @@ export default function HomeClient({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
               </span>
-              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter" style={{ fontFamily: 'Outfit' }}>Flaş Ücretsiz Fırsatlar ⚡</h3>
+              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter" style={{ fontFamily: 'Outfit' }}>Flaş Ücretsiz Fırsatlar</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {ucretsizKampanyalar.map((k) => (
@@ -363,9 +403,9 @@ export default function HomeClient({
             href={reklamAlt.link_url}
             target="_blank"
             rel="sponsored noopener noreferrer"
-            className="relative w-full h-48 rounded-[3.5rem] mt-24 overflow-hidden block shadow-xl"
+            className="relative w-full h-48 rounded-[3.5rem] mt-24 overflow-hidden block shadow-xl bg-slate-900"
           >
-            <Image src={reklamAlt.gorsel_url} alt={reklamAlt.baslik} fill sizes="100vw" className="object-cover" />
+            <Image src={reklamAlt.gorsel_url} alt={reklamAlt.baslik} fill sizes="100vw" className="object-contain" />
           </a>
         ) : (
           <div className="w-full h-48 bg-white/50 border border-slate-200 border-dashed rounded-[3.5rem] mt-24 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
@@ -380,10 +420,37 @@ export default function HomeClient({
             <span className="bg-white/20 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest inline-block mb-6">ÖZEL KULÜBE KATIL</span>
             <h3 className="text-3xl md:text-5xl font-black mb-4" style={{ fontFamily: 'Outfit' }}>En İyi Kodlar Mailine Gelsin.</h3>
             <p className="text-blue-100 font-medium mb-8">Spam yok. Sadece haftanın gerçekten işe yarayan, en yüksek indirimli 5 kodu.</p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <input type="email" placeholder="E-posta adresin..." className="px-6 py-4 rounded-2xl text-slate-900 outline-none w-full sm:w-72 font-medium focus:ring-4 focus:ring-white/30" />
-              <button className="bg-slate-900 hover:bg-black text-white px-8 py-4 rounded-2xl font-bold transition-colors whitespace-nowrap shadow-lg">Bana Gönder 🚀</button>
-            </div>
+
+            {aboneDurum === 'basarili' ? (
+              <div className="bg-white/15 border border-white/30 rounded-2xl px-6 py-5 max-w-md mx-auto">
+                <p className="font-bold text-lg">Kulübe hoş geldin!</p>
+                <p className="text-blue-100 text-sm mt-1">E-postanı onayladık, en iyi kodlar artık sana da gelecek.</p>
+              </div>
+            ) : (
+              <form onSubmit={aboneOl} className="flex flex-col sm:flex-row gap-3 justify-center">
+                <input
+                  type="email"
+                  required
+                  placeholder="E-posta adresin..."
+                  value={aboneEmail}
+                  onChange={(e) => { setAboneEmail(e.target.value); if (aboneDurum === 'hata') setAboneDurum('bos'); }}
+                  className="px-6 py-4 rounded-2xl text-slate-900 outline-none w-full sm:w-72 font-medium focus:ring-4 focus:ring-white/30"
+                />
+                <button
+                  type="submit"
+                  disabled={aboneDurum === 'gonderiliyor'}
+                  className="bg-slate-900 hover:bg-black text-white px-8 py-4 rounded-2xl font-bold transition-colors whitespace-nowrap shadow-lg disabled:opacity-60"
+                >
+                  {aboneDurum === 'gonderiliyor' ? 'Gönderiliyor...' : 'Bana Gönder'}
+                </button>
+              </form>
+            )}
+
+            {aboneDurum === 'hata' && (
+              <p className="text-white bg-red-500/30 border border-red-300/40 rounded-xl px-4 py-2 text-sm font-medium mt-3 inline-block">
+                {aboneHataMesaji}
+              </p>
+            )}
           </div>
         </section>
       </div>

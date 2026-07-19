@@ -83,7 +83,7 @@ export default function Hakkimizda() {
         </p>
         
         <p style={{ fontSize: '1.2rem', marginBottom: '10px' }}>
-          Sorun mu var, önerin mi var? ✉️ 
+          Sorun mu var, önerin mi var? Bize yaz:{' '}
           <a href="mailto:iletisim@bikodvardi.com" style={{ color: '#1e40af', textDecoration: 'underline' }}>
             iletisim@bikodvardi.com
           </a>
