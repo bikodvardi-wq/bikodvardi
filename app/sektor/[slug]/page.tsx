@@ -173,12 +173,12 @@ export default async function SektorDetay({ params }: { params: Promise<{ slug: 
             href={reklamUst.link_url}
             target="_blank"
             rel="sponsored noopener noreferrer"
-            className="relative w-full h-24 rounded-3xl mb-8 overflow-hidden block shadow-lg bg-slate-900"
+            className="relative w-full aspect-[10/1] rounded-3xl mb-8 overflow-hidden block shadow-lg bg-slate-900"
           >
-            <Image src={reklamUst.gorsel_url} alt={reklamUst.baslik} fill sizes="100vw" className="object-contain" />
+            <Image src={reklamUst.gorsel_url} alt={reklamUst.baslik} fill sizes="100vw" className="object-cover" />
           </a>
         ) : (
-          <div className="w-full h-24 bg-white/50 border border-slate-200 border-dashed rounded-3xl mb-8 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
+          <div className="w-full aspect-[10/1] bg-white/50 border border-slate-200 border-dashed rounded-3xl mb-8 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
             REKLAM ALANI
           </div>
         )}
@@ -228,12 +228,12 @@ export default async function SektorDetay({ params }: { params: Promise<{ slug: 
             href={reklamAlt.link_url}
             target="_blank"
             rel="sponsored noopener noreferrer"
-            className="relative w-full h-48 rounded-[3rem] mt-16 overflow-hidden block shadow-xl bg-slate-900"
+            className="relative w-full aspect-[6/1] rounded-[3rem] mt-16 overflow-hidden block shadow-xl bg-slate-900"
           >
-            <Image src={reklamAlt.gorsel_url} alt={reklamAlt.baslik} fill sizes="100vw" className="object-contain" />
+            <Image src={reklamAlt.gorsel_url} alt={reklamAlt.baslik} fill sizes="100vw" className="object-cover" />
           </a>
         ) : (
-          <div className="w-full h-48 bg-white/50 border border-slate-200 border-dashed rounded-[3rem] mt-16 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
+          <div className="w-full aspect-[6/1] bg-white/50 border border-slate-200 border-dashed rounded-[3rem] mt-16 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
             SPONSORLU BAĞLANTI / REKLAM
           </div>
         )}

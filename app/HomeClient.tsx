@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
+import CampaignCard from "@/components/CampaignCard";
 
 interface HomeClientProps {
   sektorler: any[];
@@ -227,29 +228,26 @@ export default function HomeClient({
           </div>
         </header>
 
-        {/* Son Şans Kampanyaları (Süresi Dolmak Üzere Olanlar) */}
+        {/* Son Şans Kampanyaları */}
         {!filtreAktif && sonSansKampanyalar.length > 0 && (
           <section className="mb-14">
             <div className="flex items-center justify-between mb-6 px-2">
               <div className="flex items-center gap-2">
-                <span className="text-xl">⏳</span>
-                <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter" style={{ fontFamily: 'Outfit' }}>Son Şans (Bitmek Üzere)</h3>
+                <span className="text-xl"></span>
+                <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter" style={{ fontFamily: 'Outfit' }}>
+                  Son Şans (Bitmek Üzere)
+                </h3>
               </div>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {sonSansKampanyalar.map(k => (
-                <Link key={k.id} href={`/kampanya/${k.slug}`} className="bg-orange-50/50 border border-orange-200 p-5 rounded-3xl hover:bg-orange-50 hover:border-orange-300 transition-all no-underline group flex flex-col justify-between">
-                  <div>
-                    <span className="inline-block bg-orange-100 text-orange-600 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md mb-3">SÜRE BİTİYOR</span>
-                    <h4 className="text-slate-900 font-bold text-sm leading-tight mb-2 group-hover:text-orange-600 transition-colors line-clamp-2">{k.baslik}</h4>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-500">{k.yapan_marka_bilgisi?.marka_adi}</span>
-                    <span className="text-[10px] bg-white border border-orange-100 text-orange-500 px-2 py-1 rounded-lg font-black uppercase tracking-widest">
-                      {Math.ceil((new Date(k.bitis_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))} Gün Kaldı
-                    </span>
-                  </div>
-                </Link>
+              {sonSansKampanyalar.map((k) => (
+                <CampaignCard
+                  key={k.id}
+                  kampanya={k}
+                  variant="son-sans"
+                  turAdi={kampanyaTurleri.find(t => t.id === k.kampanya_turu)?.tur_adi}
+                />
               ))}
             </div>
           </section>
@@ -299,29 +297,25 @@ export default function HomeClient({
 
         {/* FLAŞ ÜCRETSİZ FIRSATLAR */}
         {ucretsizKampanyalar.length > 0 && !filtreAktif && (
-          <section className="mb-14 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+          <section className="mb-14">
             <div className="flex items-center gap-3 mb-6 px-2">
               <span className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
               </span>
-              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter" style={{ fontFamily: 'Outfit' }}>Flaş Ücretsiz Fırsatlar</h3>
+              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter" style={{ fontFamily: 'Outfit' }}>
+                Flaş Ücretsiz Fırsatlar
+              </h3>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {ucretsizKampanyalar.map((k) => (
-                <Link key={k.id} href={`/kampanya/${k.slug}`} className="group relative bg-[#0D0F14] rounded-[2.5rem] p-8 border border-white/5 overflow-hidden hover:scale-[1.02] transition-all no-underline shadow-2xl shadow-blue-950/20 flex flex-col justify-between min-h-[220px]">
-                  <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-600/20 blur-[40px] group-hover:bg-blue-600/40 transition-colors"></div>
-                  <div className="relative z-10">
-                    <div className="flex justify-between items-start mb-6">
-                      <div className="bg-white p-2.5 rounded-2xl shadow-lg">
-                        {k.yapan_marka_bilgisi?.logo_url ? <Image src={k.yapan_marka_bilgisi.logo_url} width={24} height={24} className="h-6 w-auto object-contain" alt="" /> : <span className="text-black font-black text-xs">{k.yapan_marka_bilgisi?.marka_adi?.charAt(0) || '?'}</span>}
-                      </div>
-                      <span className="bg-green-500 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest animate-bounce">BEDAVA</span>
-                    </div>
-                    <h4 className="text-white font-black text-xl leading-tight mb-3 group-hover:text-blue-400 transition-colors line-clamp-2" style={{ fontFamily: 'Outfit' }}>{k.baslik}</h4>
-                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em]">0 TL Öde!</p>
-                  </div>
-                </Link>
+                <CampaignCard
+                  key={k.id}
+                  kampanya={k}
+                  variant="ucretsiz"
+                  turAdi={kampanyaTurleri.find(t => t.id === k.kampanya_turu)?.tur_adi}
+                />
               ))}
             </div>
           </section>
@@ -330,23 +324,20 @@ export default function HomeClient({
         {/* YENİ KEŞFEDİLEN FIRSATLAR */}
         <section className="mb-14">
           <div className="flex items-center justify-between mb-6 px-2">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Yeni Keşfedilen Fırsatlar</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
+              Yeni Keşfedilen Fırsatlar
+            </h3>
             <div className="h-[1px] flex-1 bg-slate-200 mx-6 hidden md:block"></div>
           </div>
-          <div className="flex gap-6 overflow-x-auto pb-6 no-scrollbar -mx-4 px-4">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {enYeniKampanyalar.map((k) => (
-              <Link key={k.id} href={`/kampanya/${k.slug}`} className="flex-shrink-0 w-[300px] md:w-[350px] bg-white p-8 rounded-[3rem] border border-slate-100 relative overflow-hidden group no-underline transition-all hover:shadow-2xl hover:-translate-y-2">
-                <div className="relative z-10">
-                  <div className="flex justify-between items-start mb-6">
-                    <span className="bg-blue-600 text-[8px] font-black text-white px-3 py-1 rounded-full uppercase tracking-widest">YENİ</span>
-                    <div className="relative w-10 h-10 bg-white rounded-2xl flex items-center justify-center p-2 border border-slate-100">
-                      {k.yapan_marka_bilgisi?.logo_url ? <Image src={k.yapan_marka_bilgisi.logo_url} fill sizes="40px" alt="" className="object-contain p-2" /> : <span className="text-xs font-black text-slate-600">{k.yapan_marka_bilgisi?.marka_adi?.charAt(0) || '?'}</span>}
-                    </div>
-                  </div>
-                  <h4 className="text-slate-900 font-black text-xl leading-tight mb-2 group-hover:text-blue-600 transition-colors h-14 overflow-hidden" style={{ fontFamily: 'Outfit' }}>{k.baslik}</h4>
-                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{k.yapan_marka_bilgisi?.marka_adi}</p>
-                </div>
-              </Link>
+              <CampaignCard
+                key={k.id}
+                kampanya={k}
+                variant="default"
+                turAdi={kampanyaTurleri.find(t => t.id === k.kampanya_turu)?.tur_adi}
+              />
             ))}
           </div>
         </section>
@@ -403,12 +394,12 @@ export default function HomeClient({
             href={reklamAlt.link_url}
             target="_blank"
             rel="sponsored noopener noreferrer"
-            className="relative w-full h-48 rounded-[3.5rem] mt-24 overflow-hidden block shadow-xl bg-slate-900"
+            className="relative w-full aspect-[6/1] rounded-[3.5rem] mt-24 overflow-hidden block shadow-xl bg-slate-900"
           >
-            <Image src={reklamAlt.gorsel_url} alt={reklamAlt.baslik} fill sizes="100vw" className="object-contain" />
+            <Image src={reklamAlt.gorsel_url} alt={reklamAlt.baslik} fill sizes="100vw" className="object-cover" />
           </a>
         ) : (
-          <div className="w-full h-48 bg-white/50 border border-slate-200 border-dashed rounded-[3.5rem] mt-24 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
+          <div className="w-full aspect-[6/1] bg-white/50 border border-slate-200 border-dashed rounded-[3.5rem] mt-24 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
             SPONSORLU BAĞLANTI / REKLAM
           </div>
         )}
