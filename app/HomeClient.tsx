@@ -240,7 +240,7 @@ export default function HomeClient({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
               {sonSansKampanyalar.map((k) => (
                 <CampaignCard
                   key={k.id}
@@ -270,7 +270,7 @@ export default function HomeClient({
                 <p className="text-sm">Filtreleri değiştir, arama yap veya kategorilere göz at!</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5">
                 {filtrelenmisKampanyalar.slice(0, 20).map((k) => (
                   <Link key={k.id} href={`/kampanya/${k.slug}`} className="group bg-white rounded-[2.5rem] p-6 border border-slate-200 overflow-hidden hover:shadow-2xl hover:border-blue-300 transition-all no-underline">
                     <div className="flex justify-between items-start mb-4">
@@ -308,7 +308,7 @@ export default function HomeClient({
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-5">
               {ucretsizKampanyalar.map((k) => (
                 <CampaignCard
                   key={k.id}
@@ -330,7 +330,7 @@ export default function HomeClient({
             <div className="h-[1px] flex-1 bg-slate-200 mx-6 hidden md:block"></div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5">
             {enYeniKampanyalar.map((k) => (
               <CampaignCard
                 key={k.id}
