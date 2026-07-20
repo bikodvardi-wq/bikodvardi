@@ -147,86 +147,148 @@ export default function HomeClient({
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 md:px-8">
-        <header className="text-center pt-10 md:pt-16 pb-12 max-w-4xl mx-auto">
-          <div className="flex flex-wrap justify-center gap-3 mb-8">
-             <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
-                <span className="text-orange-500">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{stats.toplam} TOPLAM KOD</span>
-             </div>
-             <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{stats.aktif} AKTİF KAMPANYA</span>
-             </div>
-             <div className="hidden md:inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
-                <span className="text-blue-500 font-black text-xs">●</span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{stats.marka}+ MARKA</span>
-             </div>
-          </div>
+        <header className="pt-8 md:pt-14 pb-10 md:pb-14">
+  {/* Stats */}
+  <div className="flex flex-wrap justify-center gap-2.5 mb-8">
+    <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-3.5 py-1.5 rounded-full shadow-sm">
+      <span className="text-orange-500 text-xs">📦</span>
+      <span className="text-[11px] font-bold text-slate-600">
+        {stats.toplam.toLocaleString("tr-TR")} Toplam Kod
+      </span>
+    </div>
+    <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-3.5 py-1.5 rounded-full shadow-sm">
+      <span className="relative flex h-2 w-2">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+      </span>
+      <span className="text-[11px] font-bold text-slate-600">
+        {stats.aktif.toLocaleString("tr-TR")} Aktif Kampanya
+      </span>
+    </div>
+    <div className="hidden sm:inline-flex items-center gap-2 bg-white border border-slate-200 px-3.5 py-1.5 rounded-full shadow-sm">
+      <span className="text-blue-500 text-xs font-black">●</span>
+      <span className="text-[11px] font-bold text-slate-600">
+        {stats.marka}+ Marka
+      </span>
+    </div>
+  </div>
 
-          <h1 className="text-5xl md:text-7xl font-[900] tracking-tight text-slate-900 mb-8" style={{ fontFamily: 'Outfit', lineHeight: 1.1 }}>
-            İndirim kodu arama, <br/>
-            <span className="text-blue-600 italic font-light">bi'kod bul.</span>
-          </h1>
+  {/* Başlık */}
+  <div className="text-center max-w-3xl mx-auto mb-8">
+    <h1
+      className="text-4xl sm:text-5xl md:text-6xl font-[900] tracking-tight text-slate-900 leading-[1.15]"
+      style={{ fontFamily: "Outfit" }}
+    >
+      İndirim kodu ara,
+      <br />
+      <span className="text-blue-600">bi'kod bul.</span>
+    </h1>
+  </div>
 
-          <div className="w-full max-w-4xl mx-auto">
-            <div className="relative w-full">
-              <input
-                type="text"
-                placeholder="Marka, kategori veya fırsat ara..."
-                value={aramaTerimi}
-                onChange={(e) => aramaYap(e.target.value)}
-                className="w-full bg-white border border-slate-200 p-6 rounded-3xl outline-none text-lg shadow-xl focus:ring-4 focus:ring-blue-500/10 transition-all font-medium"
-              />
+  {/* Arama Kutusu */}
+  <div className="w-full max-w-2xl mx-auto relative">
+    <div className="relative">
+      <input
+        type="text"
+        placeholder="Marka, kategori veya fırsat ara..."
+        value={aramaTerimi}
+        onChange={(e) => aramaYap(e.target.value)}
+        className="w-full bg-white border border-slate-200 text-slate-900 text-base md:text-lg 
+                   py-4 md:py-5 pl-5 pr-12 rounded-2xl shadow-lg shadow-slate-200/50
+                   outline-none focus:ring-4 focus:ring-blue-500/15 focus:border-blue-400
+                   transition-all font-medium placeholder:text-slate-400"
+      />
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+    </div>
 
-              {aramaSonuclari.length > 0 && (
-                <div className="absolute top-full mt-3 left-0 right-0 bg-white border border-slate-200 rounded-3xl shadow-2xl p-4 z-[70] overflow-hidden text-left flex flex-col gap-1">
-                  {aramaSonuclari.map((item: any, index: number) => (
-                    <Link key={index} href={item.tip === 'sektor' ? `/sektor/${item.slug}` : `/marka/${item.slug}`} className="flex items-center justify-between p-4 hover:bg-blue-50 rounded-2xl transition no-underline text-slate-900 font-bold group">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm">
-                          {item.tip === 'sektor' ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path></svg> : item.logo_url ? <Image src={item.logo_url} width={16} height={16} className="max-w-[16px] max-h-[16px] object-contain" alt="" /> : <span className="text-[10px] font-black">{item.marka_adi.charAt(0)}</span>}
-                        </div>
-                        <span className="group-hover:text-blue-600 transition-colors">{item.tip === 'sektor' ? item.sektor_adi : item.marka_adi} {item.tip === 'marka' && "İndirimleri"}</span>
-                      </div>
-                      <span className={`text-[9px] px-2.5 py-1 rounded-md uppercase tracking-widest font-black ${item.tip === 'sektor' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
-                        {item.tip === 'sektor' ? 'Kategori' : 'Marka'}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              )}
+    {/* Arama Sonuçları */}
+    {aramaSonuclari.length > 0 && (
+      <div className="absolute top-full mt-2 left-0 right-0 bg-white border border-slate-200 rounded-2xl shadow-2xl p-2 z-50 overflow-hidden">
+        {aramaSonuclari.map((item: any, index: number) => (
+          <Link
+            key={index}
+            href={item.tip === "sektor" ? `/sektor/${item.slug}` : `/marka/${item.slug}`}
+            className="flex items-center justify-between p-3.5 hover:bg-blue-50 rounded-xl transition no-underline text-slate-900 group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center">
+                {item.tip === "sektor" ? (
+                  <span className="text-sm">📁</span>
+                ) : item.logo_url ? (
+                  <Image src={item.logo_url} width={16} height={16} className="object-contain" alt="" />
+                ) : (
+                  <span className="text-[11px] font-black">{item.marka_adi?.charAt(0)}</span>
+                )}
+              </div>
+              <span className="font-semibold text-sm group-hover:text-blue-600 transition-colors">
+                {item.tip === "sektor" ? item.sektor_adi : item.marka_adi}
+                {item.tip === "marka" && " İndirimleri"}
+              </span>
             </div>
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase ${
+                item.tip === "sektor" ? "bg-orange-100 text-orange-600" : "bg-blue-100 text-blue-600"
+              }`}
+            >
+              {item.tip === "sektor" ? "Kategori" : "Marka"}
+            </span>
+          </Link>
+        ))}
+      </div>
+    )}
+  </div>
 
-            <div className="flex flex-wrap justify-center items-center gap-2 mt-4">
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Popüler:</span>
-              {populerAramalar.map(p => (
-                <button
-                  key={p}
-                  onClick={() => hizliArama(p)}
-                  className="text-[10px] bg-white border border-slate-200 hover:border-blue-300 hover:text-blue-600 text-slate-500 px-3 py-1.5 rounded-full transition-all font-bold uppercase tracking-widest shadow-sm"
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
+  {/* Popüler Aramalar */}
+  <div className="flex flex-wrap justify-center items-center gap-2 mt-4">
+    <span className="text-[11px] text-slate-400 font-medium">Popüler:</span>
+    {populerAramalar.map((p) => (
+      <button
+        key={p}
+        onClick={() => hizliArama(p)}
+        className="text-[11px] bg-white border border-slate-200 hover:border-blue-300 hover:text-blue-600 
+                   text-slate-500 px-3 py-1 rounded-full transition-all font-medium"
+      >
+        {p}
+      </button>
+    ))}
+  </div>
 
-            <div className="flex flex-wrap justify-center gap-4 mt-8 relative z-[50]">
-              <select value={seciliSektor} onChange={(e) => setSeciliSektor(e.target.value)} className="px-6 py-3 bg-white border border-slate-300 rounded-2xl shadow-sm text-slate-700 min-w-[200px] outline-none">
-                <option value="">Tüm Sektörler</option>
-                {sektorler.map((s) => <option key={s.id} value={s.id}>{s.sektor_adi} ({s.firsatSayisi || 0})</option>)}
-              </select>
-              <select value={seciliTur} onChange={(e) => setSeciliTur(e.target.value)} className="px-6 py-3 bg-white border border-slate-300 rounded-2xl shadow-sm text-slate-700 min-w-[200px] outline-none">
-                <option value="">Tüm Kampanya Türleri</option>
-                {kampanyaTurleri.map((t) => <option key={t.id} value={t.id}>{t.tur_adi || `Tür ${t.id}`}</option>)}
-              </select>
-            </div>
-          </div>
-        </header>
+  {/* Filtreler */}
+  <div className="flex flex-wrap justify-center gap-3 mt-6">
+    <select
+      value={seciliSektor}
+      onChange={(e) => setSeciliSektor(e.target.value)}
+      className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 
+                 outline-none focus:ring-2 focus:ring-blue-500/20 min-w-[160px]"
+    >
+      <option value="">Tüm Sektörler</option>
+      {sektorler.map((s) => (
+        <option key={s.id} value={s.id}>
+          {s.sektor_adi} ({s.firsatSayisi || 0})
+        </option>
+      ))}
+    </select>
+
+    <select
+      value={seciliTur}
+      onChange={(e) => setSeciliTur(e.target.value)}
+      className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 
+                 outline-none focus:ring-2 focus:ring-blue-500/20 min-w-[160px]"
+    >
+      <option value="">Tüm Kampanya Türleri</option>
+      {kampanyaTurleri.map((t) => (
+        <option key={t.id} value={t.id}>
+          {t.tur_adi || `Tür ${t.id}`}
+        </option>
+      ))}
+    </select>
+  </div>
+</header>
+        
 
         {/* Son Şans Kampanyaları */}
         {!filtreAktif && sonSansKampanyalar.length > 0 && (
@@ -364,23 +426,54 @@ export default function HomeClient({
         </div>
 
         {/* POPÜLER KATEGORİLER */}
-        <section className="mt-16">
-          <div className="flex items-end justify-between mb-10 text-left">
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-blue-600 mb-2">Popüler Kategoriler</h3>
-              <p className="text-3xl font-extrabold text-slate-900" style={{ fontFamily: 'Outfit' }}>Kategori seçerek başla.</p>
-            </div>
+        <section className="mt-16 md:mt-20">
+          <div className="mb-8">
+            <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider mb-2">
+              Popüler Kategoriler
+            </p>
+            <h2
+              className="text-2xl md:text-3xl font-extrabold text-slate-900"
+              style={{ fontFamily: "Outfit" }}
+            >
+              Kategori seçerek başla
+            </h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
             {sektorler.map((s) => (
-              <Link href={`/sektor/${s.slug}`} key={s.id} className="group bg-white rounded-[2.5rem] overflow-hidden border border-slate-200 hover:border-blue-300 hover:shadow-2xl transition-all duration-500 no-underline" title={`${s.sektor_adi} İndirim Kodları`}>
-                <div className="h-40 overflow-hidden relative">
-                  <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style={{ backgroundImage: `url('${s.gorsel_url || "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1200"}')` }}></div>
+              <Link
+                key={s.id}
+                href={`/sektor/${s.slug}`}
+                className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden 
+                          hover:border-blue-300 hover:shadow-lg transition-all duration-300 no-underline"
+              >
+                {/* Görsel Alanı */}
+                <div className="h-28 md:h-36 relative overflow-hidden">
+                  {s.gorsel_url ? (
+                    <div
+                      className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                      style={{ backgroundImage: `url('${s.gorsel_url}')` }}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                      <span className="text-white text-3xl font-black opacity-30">
+                        {s.sektor_adi.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                  {/* Hafif karartma */}
+                  <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
                 </div>
-                <div className="p-6 text-left">
-                  <div className="flex justify-between items-center">
-                    <h4 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition">{s.sektor_adi}</h4>
-                    <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-3 py-1 rounded-lg uppercase">{s.firsatSayisi || 0} Kod</span>
+
+                {/* Bilgi */}
+                <div className="p-3.5 md:p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-bold text-slate-900 text-sm md:text-[15px] group-hover:text-blue-600 transition-colors line-clamp-1">
+                      {s.sektor_adi}
+                    </h3>
+                    <span className="shrink-0 text-[10px] font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md">
+                      {s.firsatSayisi || 0}
+                    </span>
                   </div>
                 </div>
               </Link>

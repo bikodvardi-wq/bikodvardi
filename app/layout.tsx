@@ -1,6 +1,5 @@
 import { GoogleAnalytics } from '@next/third-parties/google'  
 import type { Metadata, Viewport } from "next";
-// @ts-ignore: CSS import declarations may require ambient module definitions
 import "./globals.css";
 import Script from "next/script";
 import { AppBackButton } from "./AppBackButton"; // "./components/" kısmını sildik
@@ -14,9 +13,6 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://bikodvardi.com'),
-  verification: {
-    google: "BURAYA_SEARCH_CONSOLE_KODUNU_KOY", 
-  },
   alternates: {
     canonical: 'https://bikodvardi.com',
   },
