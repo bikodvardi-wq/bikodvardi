@@ -36,6 +36,8 @@ export default function HomeClient({
 
   const [seciliSektor, setSeciliSektor] = useState<string>("");
   const [seciliTur, setSeciliTur] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   // Sabit Popüler Aramalar
   const populerAramalar = ["Trendyol", "Spor", "Kozmetik", "Ayakkabı", "Teknoloji"];
@@ -64,6 +66,9 @@ export default function HomeClient({
   const hizliArama = (terim: string) => {
     aramaYap(terim);
   };
+  useEffect(() => {
+  setCurrentPage(1);
+}, [seciliSektor, seciliTur]);
 
   // Google'ın "Site içinde ara" (SearchAction) özelliğinden gelen ?ara= parametresini yakala
   useEffect(() => {
@@ -318,41 +323,100 @@ export default function HomeClient({
         {/* FİLTRELENMİŞ SONUÇLAR */}
         {filtreAktif && (
           <section className="mb-14">
-            <div className="flex items-center justify-between mb-6 px-2">
-              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter" style={{ fontFamily: 'Outfit' }}>
-                Filtrelenmiş Fırsatlar ({filtrelenmisKampanyalar.length})
+            <div className="flex items-center justify-between mb-6 px-1">
+              <h3
+                className="text-xl font-black text-slate-900 tracking-tight"
+                style={{ fontFamily: "Outfit" }}
+              >
+                Filtrelenmiş Fırsatlar
+                <span className="ml-2 text-base font-semibold text-slate-500">
+                  ({filtrelenmisKampanyalar.length})
+                </span>
               </h3>
-              <button onClick={filtreTemizle} className="text-blue-600 hover:underline text-sm font-medium">
+              <button
+                onClick={filtreTemizle}
+                className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+              >
                 Filtreyi Temizle
               </button>
             </div>
+
             {filtrelenmisKampanyalar.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-3xl shadow border border-slate-200 p-8">
-                <p className="text-lg font-medium mb-2">Seçtiğin kriterlere uyan fırsat bulamadık.</p>
-                <p className="text-sm">Filtreleri değiştir, arama yap veya kategorilere göz at!</p>
+              <div className="text-center py-16 bg-white rounded-2xl border border-slate-200">
+                <p className="text-lg font-semibold text-slate-800 mb-1">
+                  Seçtiğin kriterlere uyan fırsat bulamadık
+                </p>
+                <p className="text-sm text-slate-500">
+                  Filtreleri değiştirerek tekrar dene.
+                </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5">
-                {filtrelenmisKampanyalar.slice(0, 20).map((k) => (
-                  <Link key={k.id} href={`/kampanya/${k.slug}`} className="group bg-white rounded-[2.5rem] p-6 border border-slate-200 overflow-hidden hover:shadow-2xl hover:border-blue-300 transition-all no-underline">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="bg-slate-50 p-2 rounded-xl">
-                        {k.yapan_marka_bilgisi?.logo_url ? <Image src={k.yapan_marka_bilgisi.logo_url} width={32} height={32} className="h-8 w-auto object-contain" alt="" /> : <span className="text-slate-600 font-bold text-sm">{k.yapan_marka_bilgisi?.marka_adi?.charAt(0) || '?'}</span>}
-                      </div>
-                      <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">
-                        {kampanyaTurleri.find(t => t.id === k.kampanya_turu)?.tur_adi || 'Fırsat'}
-                      </span>
-                    </div>
-                    <h4 className="text-slate-900 font-bold text-lg leading-tight mb-2 line-clamp-2">{k.baslik}</h4>
-                    <p className="text-slate-500 text-sm mb-2">{k.yapan_marka_bilgisi?.marka_adi}</p>
-                    {k.bitis_date && (
-                      <p className="text-slate-400 text-xs">
-                        Bitiş: {new Date(k.bitis_date).toLocaleDateString('tr-TR')}
-                      </p>
-                    )}
-                  </Link>
-                ))}
-              </div>
+              <>
+                {/* Kartlar */}
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5">
+                  {filtrelenmisKampanyalar
+                    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                    .map((k) => (
+                      <CampaignCard
+                        key={k.id}
+                        kampanya={k}
+                        variant="default"
+                        turAdi={kampanyaTurleri.find((t) => t.id === k.kampanya_turu)?.tur_adi}
+                      />
+                    ))}
+                </div>
+
+                {/* Sayfalama */}
+                {filtrelenmisKampanyalar.length > itemsPerPage && (
+                  <div className="flex flex-wrap items-center justify-center gap-2 mt-10">
+                    {/* Önceki */}
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-4 py-2 text-sm font-medium rounded-xl border border-slate-200 
+                                bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 
+                                disabled:cursor-not-allowed transition-colors"
+                    >
+                      ← Önceki
+                    </button>
+
+                    {/* Sayfa Numaraları */}
+                    {Array.from(
+                      { length: Math.ceil(filtrelenmisKampanyalar.length / itemsPerPage) },
+                      (_, i) => i + 1
+                    ).map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-10 h-10 text-sm font-semibold rounded-xl transition-colors ${
+                          currentPage === page
+                            ? "bg-blue-600 text-white"
+                            : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+
+                    {/* Sonraki */}
+                    <button
+                      onClick={() =>
+                        setCurrentPage((p) =>
+                          Math.min(Math.ceil(filtrelenmisKampanyalar.length / itemsPerPage), p + 1)
+                        )
+                      }
+                      disabled={
+                        currentPage === Math.ceil(filtrelenmisKampanyalar.length / itemsPerPage)
+                      }
+                      className="px-4 py-2 text-sm font-medium rounded-xl border border-slate-200 
+                                bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 
+                                disabled:cursor-not-allowed transition-colors"
+                    >
+                      Sonraki →
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </section>
         )}

@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import type { Metadata } from 'next';
 import HomeClient from './HomeClient';
 import { getReklam } from '@/lib/reklam';
+export const revalidate = 300; // 5 dakikada bir yenilensin
 
 // 🚀 SEO: Ana sayfa artık sunucuda render ediliyor, arama motorları
 // içeriği (kampanyalar, markalar, sektörler) doğrudan HTML içinde görüyor.
@@ -65,14 +66,18 @@ export default async function Home() {
   const ucretsizKampanyalar = karistir(ucretsizData).slice(0, 6);
   const enYeniKampanyalar = karistir(yeniKData).slice(0, 6);
 
-  // Son Şans Kampanyaları (Bitişine 3 günden az kalanlar)
-  const ucGunSonra = new Date();
-  ucGunSonra.setDate(ucGunSonra.getDate() + 3);
-  const sonSansKampanyalar = tumAktifData.filter((k: any) =>
-    k.bitis_date &&
-    new Date(k.bitis_date).getTime() <= ucGunSonra.getTime() &&
-    new Date(k.bitis_date).getTime() > new Date().getTime()
-  ).slice(0, 4);
+  // “Son Şans” (bitiş tarihi 3 gün içinde olanlar)
+const ucGunSonra = new Date();
+ucGunSonra.setDate(ucGunSonra.getDate() + 3);
+
+const sonSansKampanyalar = karistir(
+  tumAktifData.filter(
+    (k: any) =>
+      k.bitis_date &&
+      new Date(k.bitis_date).getTime() <= ucGunSonra.getTime() &&
+      new Date(k.bitis_date).getTime() > new Date().getTime()
+  )
+).slice(0, 4);
 
   // Sektör ve Marka Sayaçları
   const siraliSektorler = sData.map((sektor: any) => {
