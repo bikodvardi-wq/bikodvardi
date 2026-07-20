@@ -551,54 +551,93 @@ export default function HomeClient({
             href={reklamAlt.link_url}
             target="_blank"
             rel="sponsored noopener noreferrer"
-            className="relative w-full aspect-[6/1] rounded-[3.5rem] mt-24 overflow-hidden block shadow-xl bg-slate-900"
+            className="block mt-16 md:mt-20 rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
           >
-            <Image src={reklamAlt.gorsel_url} alt={reklamAlt.baslik} fill sizes="100vw" className="object-cover" />
+            <div className="relative w-full max-h-[140px] md:max-h-[180px] bg-slate-50">
+              <Image
+                src={reklamAlt.gorsel_url}
+                alt={reklamAlt.baslik || "Reklam"}
+                width={1200}
+                height={300}
+                className="w-full h-auto max-h-[140px] md:max-h-[180px] object-contain mx-auto"
+                sizes="100vw"
+                priority={false}
+              />
+            </div>
           </a>
         ) : (
-          <div className="w-full aspect-[6/1] bg-white/50 border border-slate-200 border-dashed rounded-[3.5rem] mt-24 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
-            SPONSORLU BAĞLANTI / REKLAM
+          <div className="mt-16 md:mt-20 w-full h-[100px] md:h-[120px] bg-slate-50 border border-dashed border-slate-200 rounded-2xl flex items-center justify-center">
+            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+              Reklam Alanı
+            </span>
           </div>
         )}
 
-        {/* TOPLULUK / BÜLTEN KUTUSU */}
-        <section className="mt-20 bg-blue-600 rounded-[3rem] p-10 md:p-16 text-center text-white shadow-2xl relative overflow-hidden">
-          <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-          <div className="relative z-10 max-w-2xl mx-auto">
-            <span className="bg-white/20 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest inline-block mb-6">ÖZEL KULÜBE KATIL</span>
-            <h3 className="text-3xl md:text-5xl font-black mb-4" style={{ fontFamily: 'Outfit' }}>En İyi Kodlar Mailine Gelsin.</h3>
-            <p className="text-blue-100 font-medium mb-8">Spam yok. Sadece haftanın gerçekten işe yarayan, en yüksek indirimli 5 kodu.</p>
+        {/* ÖZEL KULÜP / NEWSLETTER */}
+        <section className="mt-16 md:mt-24">
+          <div className="relative bg-slate-900 rounded-3xl overflow-hidden">
+            {/* Arka plan efekti */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-transparent"></div>
+            <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl"></div>
 
-            {aboneDurum === 'basarili' ? (
-              <div className="bg-white/15 border border-white/30 rounded-2xl px-6 py-5 max-w-md mx-auto">
-                <p className="font-bold text-lg">Kulübe hoş geldin!</p>
-                <p className="text-blue-100 text-sm mt-1">E-postanı onayladık, en iyi kodlar artık sana da gelecek.</p>
-              </div>
-            ) : (
-              <form onSubmit={aboneOl} className="flex flex-col sm:flex-row gap-3 justify-center">
-                <input
-                  type="email"
-                  required
-                  placeholder="E-posta adresin..."
-                  value={aboneEmail}
-                  onChange={(e) => { setAboneEmail(e.target.value); if (aboneDurum === 'hata') setAboneDurum('bos'); }}
-                  className="px-6 py-4 rounded-2xl text-slate-900 outline-none w-full sm:w-72 font-medium focus:ring-4 focus:ring-white/30"
-                />
-                <button
-                  type="submit"
-                  disabled={aboneDurum === 'gonderiliyor'}
-                  className="bg-slate-900 hover:bg-black text-white px-8 py-4 rounded-2xl font-bold transition-colors whitespace-nowrap shadow-lg disabled:opacity-60"
-                >
-                  {aboneDurum === 'gonderiliyor' ? 'Gönderiliyor...' : 'Bana Gönder'}
-                </button>
-              </form>
-            )}
+            <div className="relative z-10 px-6 py-12 md:px-12 md:py-16 text-center">
+              <span className="inline-block bg-blue-500/20 text-blue-300 text-[11px] font-bold px-4 py-1.5 rounded-full uppercase tracking-wider mb-5">
+                Özel Kulüp
+              </span>
 
-            {aboneDurum === 'hata' && (
-              <p className="text-white bg-red-500/30 border border-red-300/40 rounded-xl px-4 py-2 text-sm font-medium mt-3 inline-block">
-                {aboneHataMesaji}
+              <h2
+                className="text-2xl md:text-4xl font-extrabold text-white mb-3 leading-tight"
+                style={{ fontFamily: "Outfit" }}
+              >
+                En iyi kodlar mailine gelsin
+              </h2>
+
+              <p className="text-slate-400 text-sm md:text-base max-w-md mx-auto mb-8">
+                Spam yok. Sadece haftanın gerçekten işe yarayan, en yüksek indirimli 5 kodu.
               </p>
-            )}
+
+              {aboneDurum === "basarili" ? (
+                <div className="bg-white/10 border border-white/20 rounded-2xl px-6 py-5 max-w-md mx-auto">
+                  <p className="font-bold text-white text-lg">Kulübe hoş geldin! 🎉</p>
+                  <p className="text-slate-300 text-sm mt-1">
+                    En iyi kodlar artık sana da gelecek.
+                  </p>
+                </div>
+              ) : (
+                <form
+                  onSubmit={aboneOl}
+                  className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto"
+                >
+                  <input
+                    type="email"
+                    required
+                    placeholder="E-posta adresin..."
+                    value={aboneEmail}
+                    onChange={(e) => {
+                      setAboneEmail(e.target.value);
+                      if (aboneDurum === "hata") setAboneDurum("bos");
+                    }}
+                    className="flex-1 px-5 py-3.5 rounded-xl bg-white text-slate-900 text-sm font-medium 
+                              outline-none focus:ring-4 focus:ring-blue-500/30 placeholder:text-slate-400"
+                  />
+                  <button
+                    type="submit"
+                    disabled={aboneDurum === "gonderiliyor"}
+                    className="px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold 
+                              rounded-xl transition-colors disabled:opacity-60 whitespace-nowrap"
+                  >
+                    {aboneDurum === "gonderiliyor" ? "Gönderiliyor..." : "Katıl 🚀"}
+                  </button>
+                </form>
+              )}
+
+              {aboneDurum === "hata" && (
+                <p className="mt-4 text-sm text-red-300 bg-red-500/10 border border-red-500/20 
+                              rounded-xl px-4 py-2.5 inline-block">
+                  {aboneHataMesaji}
+                </p>
+              )}
+            </div>
           </div>
         </section>
       </div>
