@@ -56,13 +56,20 @@ export default function ReklamEkle() {
   try {
     const isEditing = !!editingId;
 
+    // Boş tarihleri null yap
+    const payload = {
+      ...form,
+      baslangic_tarihi: form.baslangic_tarihi || null,
+      bitis_tarihi: form.bitis_tarihi || null,
+    };
+
     const res = await fetch('/api/admin/reklam', {
       method: isEditing ? 'PUT' : 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(
-        isEditing ? { id: editingId, ...form } : form
+        isEditing ? { id: editingId, ...payload } : payload
       ),
     });
 
@@ -84,7 +91,6 @@ export default function ReklamEkle() {
     setYukleniyor(false);
   }
   };
-
   const aktifligiDegistir = async (id: number, mevcutDurum: boolean) => {
   try {
     const res = await fetch('/api/admin/reklam', {
