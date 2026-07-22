@@ -3,7 +3,9 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Metadata } from 'next';
-import { getReklam } from '@/lib/reklam';
+import ReklamAlani from '@/components/ReklamAlani';
+import { getReklamlar } from '@/lib/reklam';
+
 
 // ISR: Her 1 saatte bir yenile
 export const revalidate = 3600;
@@ -82,8 +84,8 @@ export default async function SektorDetay({ params }: { params: Promise<{ slug: 
     .or(`sektor_id.eq.${sektor.id},ek_sektor_idler.cs.{${sektor.id}}`);
 
   const [reklamUst, reklamAlt] = await Promise.all([
-    getReklam('sektor_ust'),
-    getReklam('sektor_alt'),
+    getReklamlar('sektor_ust', 2),
+    getReklamlar('sektor_alt', 2),
   ]);
 
   const kampanyaListesi = kData || [];
@@ -167,22 +169,18 @@ export default async function SektorDetay({ params }: { params: Promise<{ slug: 
           </div>
         </div>
 
-        {/* --- REKLAM ALANI 1 (ÜST) --- */}
-        {reklamUst ? (
-          <a
-            href={reklamUst.link_url}
-            target="_blank"
-            rel="sponsored noopener noreferrer"
-            className="relative w-full aspect-[10/1] rounded-3xl mb-8 overflow-hidden block shadow-lg bg-slate-900"
-          >
-            <Image src={reklamUst.gorsel_url} alt={reklamUst.baslik} fill sizes="100vw" className="object-cover" />
-          </a>
-        ) : (
-          <div className="w-full aspect-[10/1] bg-white/50 border border-slate-200 border-dashed rounded-3xl mb-8 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
-            REKLAM ALANI
+        {/* REKLAM ALANI */}
+        {reklamAlt && reklamAlt.length > 0 && (
+          <div className="mt-12 mb-8">
+            <ReklamAlani reklamlar={reklamAlt} maxCount={2} />
           </div>
         )}
 
+        {reklamUst && reklamUst.length > 0 && (
+          <div className="mb-8">
+            <ReklamAlani reklamlar={reklamUst} maxCount={2} />
+          </div>
+)}
         {/* --- MARKA KARTLARI (sadece aktif kod sayısı gösteriliyor) --- */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {markalar.map((marka) => (
@@ -222,21 +220,15 @@ export default async function SektorDetay({ params }: { params: Promise<{ slug: 
           ))}
         </div>
 
-        {/* --- REKLAM ALANI 2 (ALT - BÜYÜK) --- */}
-        {reklamAlt ? (
-          <a
-            href={reklamAlt.link_url}
-            target="_blank"
-            rel="sponsored noopener noreferrer"
-            className="relative w-full aspect-[6/1] rounded-[3rem] mt-16 overflow-hidden block shadow-xl bg-slate-900"
-          >
-            <Image src={reklamAlt.gorsel_url} alt={reklamAlt.baslik} fill sizes="100vw" className="object-cover" />
-          </a>
-        ) : (
-          <div className="w-full aspect-[6/1] bg-white/50 border border-slate-200 border-dashed rounded-[3rem] mt-16 flex items-center justify-center text-slate-300 text-[10px] font-bold uppercase tracking-[0.5em]">
-            SPONSORLU BAĞLANTI / REKLAM
-          </div>
-        )}
+        {/* REKLAM ALANI */}
+{reklamAlt && (
+  <div className="mt-12 mb-8">
+    <ReklamAlani 
+      reklamlar={Array.isArray(reklamAlt) ? reklamAlt : [reklamAlt]} 
+      maxCount={2} 
+    />
+  </div>
+)}
 
       </div>
     </main>

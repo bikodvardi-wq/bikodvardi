@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import Image from 'next/image';
+import { getReklamlar } from '@/lib/reklam';
+import ReklamAlani from '@/components/ReklamAlani';
 
 // ISR: Her 1 saatte bir yenile
 export const revalidate = 3600; 
@@ -92,6 +94,8 @@ export default async function MarkaDetay({ params }: { params: Promise<{ slug: s
     .order('id', { ascending: false });
 
   const kampanyaListesi = kampanyalar || [];
+  // Reklam çek
+const reklamAlt = await getReklamlar('marka_alt', 2);
 
   // 3. BENZER MARKALARI ÇEK (Aynı sektördeki diğer markalar)
   const { data: benzerMarkalar } = await supabase
@@ -381,7 +385,12 @@ export default async function MarkaDetay({ params }: { params: Promise<{ slug: s
           </div>
         )}
       </div>
-
+      {/* REKLAM ALANI */}
+      {reklamAlt && reklamAlt.length > 0 && (
+        <div className="max-w-5xl mx-auto px-6 mt-16">
+          <ReklamAlani reklamlar={reklamAlt} maxCount={2} />
+        </div>
+      )}
       <footer className="mt-20 py-12 text-center opacity-40">
         <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.4em]">
           bi<span className="text-blue-600">kod</span>vardı — {new Date().getFullYear()}

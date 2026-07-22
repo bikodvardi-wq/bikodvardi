@@ -2,11 +2,13 @@ import { supabase } from '@/lib/supabase';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import KampanyaIcerik from './KampanyaIcerik';
+import { getReklamlar } from '@/lib/reklam';
+import ReklamAlani from '@/components/ReklamAlani';
 
 // 🚀 SEO: Garantili Versiyon + Çöp Sayfa (NoIndex) Engelleyici
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
-  
+  const reklamAlt = await getReklamlar('kampanya_alt', 2);
   const { data: kampanya } = await supabase
     .from('kampanya')
     .select('baslik, aciklama, slug, bitis_date, yapan_marka(marka_adi)')
@@ -68,7 +70,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   if (error || !kampanya) {
     notFound();
   }
-
+  const reklamAlt = await getReklamlar('kampanya_alt', 2);
   // 🔥 DEĞİŞİKLİK 2: benzerler sorgusuna "slug" eklendi
   const { data: benzerler } = await supabase
     .from('kampanya')
@@ -104,7 +106,10 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <KampanyaIcerik kampanya={kampanya} benzerler={benzerler || []} />
-    </>
+      <KampanyaIcerik 
+        kampanya={kampanya} 
+        benzerler={benzerler || []} 
+        reklamlar={reklamAlt || []}
+/>    </> 
   );
 }

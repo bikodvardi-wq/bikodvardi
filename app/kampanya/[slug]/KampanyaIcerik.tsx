@@ -4,8 +4,17 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
+import ReklamAlani from '@/components/ReklamAlani';
 
-export default function KampanyaIcerik({ kampanya: ilkKampanya, benzerler }: { kampanya: any, benzerler: any[] }) {
+export default function KampanyaIcerik({ 
+  kampanya: ilkKampanya, 
+  benzerler,
+  reklamlar = []
+}: { 
+  kampanya: any, 
+  benzerler: any[],
+  reklamlar?: any[]
+}) {
   const [kampanya, setKampanya] = useState(ilkKampanya);
   const [oyVerildi, setOyVerildi] = useState<'ise_yaradi' | 'hatali' | null>(null);
 
@@ -245,7 +254,12 @@ export default function KampanyaIcerik({ kampanya: ilkKampanya, benzerler }: { k
             <span className="text-white/20 font-bold text-[9px] uppercase tracking-widest">biKodVardı</span>
           </div>
         </div>
-
+        {/* REKLAM ALANI */}
+        {reklamlar && reklamlar.length > 0 && (
+          <div className="mt-12 mb-4">
+            <ReklamAlani reklamlar={reklamlar} maxCount={2} />
+          </div>
+        )}
         {/* BENZER KAMPANYALAR */}
         {benzerler.length > 0 && (
           <div className="mt-16 mb-8">
