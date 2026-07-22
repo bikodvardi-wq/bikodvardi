@@ -15,6 +15,7 @@ export default function ReklamEkle() {
   const router = useRouter();
   const [yukleniyor, setYukleniyor] = useState(false);
   const [reklamlar, setReklamlar] = useState<any[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const [form, setForm] = useState({
     baslik: '',
@@ -36,47 +37,101 @@ export default function ReklamEkle() {
   }, []);
 
   const formuSifirla = () => {
-    setForm({
-      baslik: '', gorsel_url: '', link_url: '', konum: 'anasayfa_ust',
-      baslangic_tarihi: '', bitis_tarihi: '', aktif: true,
-    });
+  setForm({
+    baslik: '',
+    gorsel_url: '',
+    link_url: '',
+    konum: 'anasayfa_ust',
+    baslangic_tarihi: '',
+    bitis_tarihi: '',
+    aktif: true,
+  });
+  setEditingId(null);
   };
 
   const kaydet = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setYukleniyor(true);
+  e.preventDefault();
+  setYukleniyor(true);
 
-    const payload = {
-      baslik: form.baslik,
-      gorsel_url: form.gorsel_url,
-      link_url: form.link_url,
-      konum: form.konum,
-      baslangic_tarihi: form.baslangic_tarihi || null,
-      bitis_tarihi: form.bitis_tarihi || null,
-      aktif: form.aktif,
-    };
+  try {
+    const isEditing = !!editingId;
 
-    const { error } = await supabase.from('reklam').insert([payload]);
+    const res = await fetch('/api/admin/reklam', {
+      method: isEditing ? 'PUT' : 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(
+        isEditing ? { id: editingId, ...form } : form
+      ),
+    });
 
-    if (error) {
-      alert('Hata: ' + error.message);
-    } else {
-      alert('✅ Reklam eklendi!');
-      formuSifirla();
-      listeyiGetir();
+    const result = await res.json();
+
+    if (!res.ok) {
+      alert('Hata: ' + (result.error || 'Bir şeyler ters gitti'));
+      setYukleniyor(false);
+      return;
     }
+
+    alert(isEditing ? '✅ Reklam güncellendi!' : '✅ Reklam eklendi!');
+    formuSifirla();
+    listeyiGetir();
+  } catch (err) {
+    console.error(err);
+    alert('Sunucu hatası oluştu');
+  } finally {
     setYukleniyor(false);
+  }
   };
 
   const aktifligiDegistir = async (id: number, mevcutDurum: boolean) => {
-    await supabase.from('reklam').update({ aktif: !mevcutDurum }).eq('id', id);
+  try {
+    const res = await fetch('/api/admin/reklam', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id,
+        aktif: !mevcutDurum,
+      }),
+    });
+
+    if (!res.ok) {
+      const result = await res.json();
+      alert('Hata: ' + (result.error || 'Güncellenemedi'));
+      return;
+    }
+
     listeyiGetir();
+  } catch (err) {
+    console.error(err);
+    alert('Sunucu hatası oluştu');
+  }
   };
 
   const sil = async (id: number) => {
-    if (!confirm('Bu reklamı silmek istediğine emin misin?')) return;
-    await supabase.from('reklam').delete().eq('id', id);
+  if (!confirm('Bu reklamı silmek istediğine emin misin?')) return;
+
+  try {
+    const res = await fetch(`/api/admin/reklam?id=${id}`, {
+      method: 'DELETE',
+    });
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      alert('Hata: ' + (result.error || 'Silinemedi'));
+      return;
+    }
+
+    if (editingId === id) formuSifirla();
     listeyiGetir();
+  } catch (err) {
+    console.error(err);
+    alert('Sunucu hatası oluştu');
+  }
   };
 
   return (

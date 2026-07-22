@@ -50,33 +50,36 @@ export default function MarkaEkle() {
   };
 
   const kaydet = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const aynisiVarMi = tumMarkalar.find(m => m.marka_adi.toLowerCase() === form.marka_adi.toLowerCase());
-    if (aynisiVarMi) {
-        if(!confirm(`DİKKAT: "${aynisiVarMi.marka_adi}" isminde bir marka zaten kayıtlı! Yine de eklemek istiyor musun?`)) {
-            return;
-        }
+  e.preventDefault();
+  setYukleniyor(true);
+
+  try {
+    const res = await fetch('/api/admin/marka', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(form), // form state’inin adını ne ise onu yaz
+    });
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      alert('Hata: ' + (result.error || 'Bir şeyler ters gitti'));
+      setYukleniyor(false);
+      return;
     }
 
-    setYukleniyor(true);
-
-    const { error } = await supabase.from('marka').insert([{
-      marka_adi: form.marka_adi,
-      logo_url: form.logo_url,
-      sektor_id: form.sektor_id,
-      marka_email: form.marka_email || null, // Veritabanına kaydediyoruz
-      ek_sektor_idler: form.ek_sektor_idler.length > 0 ? form.ek_sektor_idler : null,
-      slug: slugOlustur(form.marka_adi)
-    }]);
-
-    if (error) { 
-        alert(error.message); 
-        setYukleniyor(false); 
-    } else { 
-        alert('✅ Marka Başarıyla Tanımlandı!'); 
-        router.push('/admin'); 
-    }
+    alert('✅ Marka başarıyla eklendi!');
+    // formu sıfırla
+    // formuSifirla();  veya senin sıfırlama fonksiyonun neyse
+    // listeyiGetir();  varsa listeyi yenile
+  } catch (err) {
+    console.error(err);
+    alert('Sunucu hatası oluştu');
+  } finally {
+    setYukleniyor(false);
+  }
   };
 
   return (

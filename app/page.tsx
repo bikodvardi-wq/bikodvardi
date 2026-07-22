@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import type { Metadata } from 'next';
 import HomeClient from './HomeClient';
-import { getReklam } from '@/lib/reklam';
+import { getReklamlar } from '@/lib/reklam';
 export const revalidate = 300; // 5 dakikada bir yenilensin
 
 // 🚀 SEO: Ana sayfa artık sunucuda render ediliyor, arama motorları
@@ -27,35 +27,51 @@ function karistir<T>(array: T[]): T[] {
 export default async function Home() {
   const now = new Date().toISOString();
 
-  const [sRes, tRes, mRes, yeniKRes, ucretsizRes, tumAktifRes, tumToplamRes, markaCountRes, reklamAlt] = await Promise.all([
-    supabase.from('sektor').select('id, sektor_adi, slug, gorsel_url'),
-    supabase.from('kampanya_turu').select('id, tur_adi'),
-    supabase.from('marka').select('id, marka_adi, slug, logo_url, sektor_id, ek_sektor_idler'),
+  const [
+  sRes,
+  tRes,
+  mRes,
+  yeniKRes,
+  ucretsizRes,
+  tumAktifRes,
+  tumToplamRes,
+  markaCountRes,
+  reklamAlt,
+  reklamUst,
+] = await Promise.all([
+  supabase.from('sektor').select('id, sektor_adi, slug, gorsel_url'),
+  supabase.from('kampanya_turu').select('id, tur_adi'),
+  supabase.from('marka').select('id, marka_adi, slug, logo_url, sektor_id, ek_sektor_idler'),
 
-    supabase.from('kampanya')
-      .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url, sektor_id)')
-      .or(`bitis_date.gt.${now},bitis_date.is.null`)
-      .order('created_at', { ascending: false })
-      .limit(20),
+  supabase
+    .from('kampanya')
+    .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url, sektor_id)')
+    .or(`bitis_date.gt.${now},bitis_date.is.null`)
+    .order('created_at', { ascending: false })
+    .limit(20),
 
-    supabase.from('kampanya')
-      .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url, sektor_id)')
-      .in('kampanya_turu', [3, 4])
-      .or(`bitis_date.gt.${now},bitis_date.is.null`)
-      .order('created_at', { ascending: false })
-      .limit(20),
+  supabase
+    .from('kampanya')
+    .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url, sektor_id)')
+    .in('kampanya_turu', [3, 4])
+    .or(`bitis_date.gt.${now},bitis_date.is.null`)
+    .order('created_at', { ascending: false })
+    .limit(20),
 
-    supabase.from('kampanya')
-      .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url, sektor_id), bitis_date')
-      .or(`bitis_date.gt.${now},bitis_date.is.null`)
-      .order('created_at', { ascending: false })
-      .limit(1000),
+  supabase
+    .from('kampanya')
+    .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url, sektor_id), bitis_date')
+    .or(`bitis_date.gt.${now},bitis_date.is.null`)
+    .order('created_at', { ascending: false })
+    .limit(1000),
 
-    supabase.from('kampanya').select('id', { count: 'exact', head: true }),
-    supabase.from('marka').select('id', { count: 'exact', head: true }),
-    getReklam('anasayfa_alt'),
+  supabase.from('kampanya').select('id', { count: 'exact', head: true }),
+  supabase.from('marka').select('id', { count: 'exact', head: true }),
+  getReklamlar('anasayfa_alt', 2),
+  getReklamlar('anasayfa_ust', 2),
   ]);
 
+  
   const sData = sRes.data || [];
   const tData = tRes.data || [];
   const mData = mRes.data || [];
@@ -125,6 +141,7 @@ const sonSansKampanyalar = karistir(
       tumMarkalar={mData}
       stats={stats}
       reklamAlt={reklamAlt}
+      reklamUst={reklamUst}
     />
   );
 }

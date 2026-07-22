@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import CampaignCard from "@/components/CampaignCard";
+import ReklamAlani from "@/components/ReklamAlani";
 
 interface HomeClientProps {
   sektorler: any[];
@@ -16,9 +17,9 @@ interface HomeClientProps {
   sonSansKampanyalar: any[];
   tumMarkalar: any[];
   stats: { aktif: number; toplam: number; marka: number };
-  reklamAlt: { id: number; baslik: string; gorsel_url: string; link_url: string } | null;
+  reklamAlt: any[] | null;   // ← burayı değiştirdik
+  reklamUst: any[] | null;   // ← bunu ekle
 }
-
 export default function HomeClient({
   sektorler,
   kampanyaTurleri,
@@ -30,6 +31,7 @@ export default function HomeClient({
   tumMarkalar,
   stats,
   reklamAlt,
+  reklamUst,          // ← bunu ekle
 }: HomeClientProps) {
   const [aramaTerimi, setAramaTerimi] = useState("");
   const [aramaSonuclari, setAramaSonuclari] = useState<any[]>([]);
@@ -545,33 +547,20 @@ export default function HomeClient({
           </div>
         </section>
 
-        {/* REKLAM ALANI */}
-        {reklamAlt ? (
-          <a
-            href={reklamAlt.link_url}
-            target="_blank"
-            rel="sponsored noopener noreferrer"
-            className="block mt-16 md:mt-20 rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
-          >
-            <div className="relative w-full max-h-[140px] md:max-h-[180px] bg-slate-50">
-              <Image
-                src={reklamAlt.gorsel_url}
-                alt={reklamAlt.baslik || "Reklam"}
-                width={1200}
-                height={300}
-                className="w-full h-auto max-h-[140px] md:max-h-[180px] object-contain mx-auto"
-                sizes="100vw"
-                priority={false}
-              />
-            </div>
-          </a>
-        ) : (
-          <div className="mt-16 md:mt-20 w-full h-[100px] md:h-[120px] bg-slate-50 border border-dashed border-slate-200 rounded-2xl flex items-center justify-center">
-            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
-              Reklam Alanı
-            </span>
-          </div>
-        )}
+      
+      {/* ORTA REKLAM ALANI */}
+      {(reklamUst && reklamUst.length > 0) && (
+        <div className="mt-12 md:mt-16">
+          <ReklamAlani reklamlar={reklamUst} maxCount={2} />
+        </div>
+      )}
+
+      {/* ALT REKLAM ALANI */}
+      {(reklamAlt && reklamAlt.length > 0) && (
+        <div className="mt-12 md:mt-16 mb-4">
+          <ReklamAlani reklamlar={reklamAlt} maxCount={2} />
+        </div>
+      )}
 
         {/* ÖZEL KULÜP / NEWSLETTER */}
         <section className="mt-16 md:mt-24">

@@ -8,10 +8,14 @@ export interface Reklam {
   konum: string;
 }
 
-// Belirli bir konum için aktif (tarih aralığında + açık) reklamlardan birini getirir.
-// Birden fazla aktif reklam varsa her çağrıda rastgele biri seçilir — bu da
-// sayfa yenilendikçe reklamların doğal olarak "sırayla dönmesini" sağlar.
-export async function getReklam(konum: string): Promise<Reklam | null> {
+/**
+ * Belirli bir konum için aktif reklamlardan istenen sayıda getirir.
+ * Birden fazla aktif reklam varsa rastgele karıştırıp döner.
+ */
+export async function getReklamlar(
+  konum: string,
+  limit: number = 2
+): Promise<Reklam[]> {
   const now = new Date().toISOString();
 
   const { data } = await supabase
@@ -23,7 +27,19 @@ export async function getReklam(konum: string): Promise<Reklam | null> {
     .or(`bitis_tarihi.is.null,bitis_tarihi.gte.${now}`);
 
   const aktifler = data || [];
-  if (aktifler.length === 0) return null;
 
-  return aktifler[Math.floor(Math.random() * aktifler.length)];
+  if (aktifler.length === 0) return [];
+
+  // Karıştır
+  const karisik = [...aktifler].sort(() => 0.5 - Math.random());
+
+  return karisik.slice(0, limit);
+}
+
+/**
+ * Eski kodlarla uyumluluk için tek reklam döndüren versiyon
+ */
+export async function getReklam(konum: string): Promise<Reklam | null> {
+  const reklamlar = await getReklamlar(konum, 1);
+  return reklamlar[0] || null;
 }
