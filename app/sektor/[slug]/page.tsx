@@ -84,8 +84,8 @@ export default async function SektorDetay({ params }: { params: Promise<{ slug: 
     .or(`sektor_id.eq.${sektor.id},ek_sektor_idler.cs.{${sektor.id}}`);
 
   const [reklamUst, reklamAlt] = await Promise.all([
-    getReklamlar('sektor_ust', 2),
-    getReklamlar('sektor_alt', 2),
+  getReklamlar('sektor_ust', 2),
+  getReklamlar('sektor_alt', 2),
   ]);
 
   const kampanyaListesi = kData || [];
@@ -169,14 +169,16 @@ export default async function SektorDetay({ params }: { params: Promise<{ slug: 
           </div>
         </div>
 
-        {/* REKLAM ALANI */}
-       
-        {reklamAlt && reklamAlt.length > 0 && (
-        <div className="mt-12 mb-8 max-w-2xl mx-auto">
-          <ReklamAlani reklamlar={reklamAlt} maxCount={2} />
-        </div>
-          )}
-
+        {/* ÜST REKLAM — YATAY */}
+        {reklamUst && reklamUst.length > 0 && (
+          <div className="mb-10">
+            <ReklamAlani 
+              reklamlar={reklamUst} 
+              maxCount={2} 
+              variant="banner" 
+            />
+          </div>
+        )}
         {/* --- MARKA KARTLARI (sadece aktif kod sayısı gösteriliyor) --- */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {markalar.map((marka) => (
@@ -216,15 +218,16 @@ export default async function SektorDetay({ params }: { params: Promise<{ slug: 
           ))}
         </div>
 
-        {/* REKLAM ALANI */}
-{reklamAlt && (
-  <div className="mt-12 mb-8">
-    <ReklamAlani 
-      reklamlar={Array.isArray(reklamAlt) ? reklamAlt : [reklamAlt]} 
-      maxCount={2} 
-    />
-  </div>
-)}
+        {/* ALT REKLAM — KARE */}
+          {reklamAlt && reklamAlt.length > 0 && (
+            <div className="mt-12 mb-8">
+              <ReklamAlani 
+                reklamlar={reklamAlt} 
+                maxCount={2} 
+                variant="square" 
+              />
+            </div>
+          )}
 
       </div>
     </main>

@@ -5,12 +5,12 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
 const KONUMLAR = [
-  { value: 'anasayfa_ust', label: 'Ana Sayfa — Üst' },
-  { value: 'anasayfa_alt', label: 'Ana Sayfa — Alt' },
-  { value: 'sektor_ust', label: 'Sektör Sayfası — Üst' },
-  { value: 'sektor_alt', label: 'Sektör Sayfası — Alt' },
-  { value: 'marka_alt', label: 'Marka Sayfası — Alt' },
-  { value: 'kampanya_alt', label: 'Kampanya Sayfası — Alt' },
+  { value: 'anasayfa_ust', label: 'Ana Sayfa — Orta (yatay banner)' },
+  { value: 'anasayfa_alt', label: 'Ana Sayfa — Alt (kare)' },
+  { value: 'sektor_ust', label: 'Sektör — Üst (yatay banner)' },
+  { value: 'sektor_alt', label: 'Sektör — Alt (kare)' },
+  { value: 'marka_alt', label: 'Marka — Alt (kare)' },
+  { value: 'kampanya_alt', label: 'Kampanya — Alt (kare)' },
 ];
 
 export default function ReklamEkle() {

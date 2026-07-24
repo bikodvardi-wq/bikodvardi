@@ -490,6 +490,17 @@ export default function HomeClient({
             ))}
           </div>
         </div>
+      
+      {/* ORTA REKLAM ALANI — YATAY */}
+      {(reklamUst && reklamUst.length > 0) && (
+        <div className="mt-12 md:mt-16">
+          <ReklamAlani 
+            reklamlar={reklamUst} 
+            maxCount={2} 
+            variant="banner" 
+          />
+        </div>
+      )}
 
         {/* POPÜLER KATEGORİLER */}
         <section className="mt-16 md:mt-20">
@@ -548,19 +559,17 @@ export default function HomeClient({
         </section>
 
       
-      {/* ORTA REKLAM ALANI */}
-      {(reklamUst && reklamUst.length > 0) && (
-        <div className="mt-12 md:mt-16">
-          <ReklamAlani reklamlar={reklamUst} maxCount={2} />
-        </div>
-      )}
-
-      {/* ALT REKLAM ALANI */}
+   
+      {/* ALT REKLAM ALANI — KARE */}
       {(reklamAlt && reklamAlt.length > 0) && (
         <div className="mt-12 md:mt-16 mb-4">
-          <ReklamAlani reklamlar={reklamAlt} maxCount={2} />
+          <ReklamAlani 
+            reklamlar={reklamAlt} 
+            maxCount={2} 
+            variant="square" 
+          />
         </div>
-      )}
+)}
 
         {/* ÖZEL KULÜP / NEWSLETTER */}
         <section className="mt-16 md:mt-24">
