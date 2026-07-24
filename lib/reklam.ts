@@ -20,7 +20,7 @@ export async function getReklamlar(
 
   const { data } = await supabase
     .from('reklam')
-    .select('id, baslik, gorsel_url, link_url, konum')
+    .select('id, baslik, gorsel_url, link_url, konum, etiket')
     .eq('konum', konum)
     .eq('aktif', true)
     .or(`baslangic_tarihi.is.null,baslangic_tarihi.lte.${now}`)

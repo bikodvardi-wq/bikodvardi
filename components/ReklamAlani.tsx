@@ -9,12 +9,13 @@ interface Reklam {
   gorsel_url: string;
   link_url: string;
   konum?: string;
+  etiket?: string;
 }
 
 interface ReklamAlaniProps {
   reklamlar: Reklam[] | Reklam | null;
   className?: string;
-  maxCount?: number; // Kaç tane gösterilsin (varsayılan 2)
+  maxCount?: number;
 }
 
 export default function ReklamAlani({
@@ -22,7 +23,6 @@ export default function ReklamAlani({
   className = "",
   maxCount = 2,
 }: ReklamAlaniProps) {
-  // Tek reklam gelirse diziye çevir
   const liste = !reklamlar
     ? []
     : Array.isArray(reklamlar)
@@ -68,6 +68,13 @@ export default function ReklamAlani({
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             sizes="(max-width: 768px) 50vw, 280px"
           />
+
+          {/* ETİKET */}
+          {reklam.etiket && (
+            <span className="absolute top-2 right-2 bg-black/70 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider backdrop-blur-sm">
+              {reklam.etiket}
+            </span>
+          )}
         </Link>
       ))}
     </div>

@@ -170,17 +170,13 @@ export default async function SektorDetay({ params }: { params: Promise<{ slug: 
         </div>
 
         {/* REKLAM ALANI */}
+       
         {reklamAlt && reklamAlt.length > 0 && (
-          <div className="mt-12 mb-8">
-            <ReklamAlani reklamlar={reklamAlt} maxCount={2} />
-          </div>
-        )}
+        <div className="mt-12 mb-8 max-w-2xl mx-auto">
+          <ReklamAlani reklamlar={reklamAlt} maxCount={2} />
+        </div>
+          )}
 
-        {reklamUst && reklamUst.length > 0 && (
-          <div className="mb-8">
-            <ReklamAlani reklamlar={reklamUst} maxCount={2} />
-          </div>
-)}
         {/* --- MARKA KARTLARI (sadece aktif kod sayısı gösteriliyor) --- */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {markalar.map((marka) => (
