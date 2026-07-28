@@ -11,6 +11,8 @@ const KONUMLAR = [
   { value: 'sektor_alt', label: 'Sektör — Alt (kare)' },
   { value: 'marka_alt', label: 'Marka — Alt (kare)' },
   { value: 'kampanya_alt', label: 'Kampanya — Alt (kare)' },
+  { value: 'marka_ust', label: 'Marka — Üst (yatay banner)' },
+  { value: 'kampanya_ust', label: 'Kampanya — Üst (yatay banner)' },
 ];
 
 export default function ReklamEkle() {

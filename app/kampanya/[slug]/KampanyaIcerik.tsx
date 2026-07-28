@@ -9,10 +9,12 @@ import ReklamAlani from '@/components/ReklamAlani';
 export default function KampanyaIcerik({ 
   kampanya: ilkKampanya, 
   benzerler,
+  reklamUst = [],
   reklamlar = []
 }: { 
   kampanya: any, 
   benzerler: any[],
+  reklamUst?: any[],
   reklamlar?: any[]
 }) {
   const [kampanya, setKampanya] = useState(ilkKampanya);
@@ -24,14 +26,12 @@ export default function KampanyaIcerik({
     fontLink.rel = 'stylesheet';
     document.head.appendChild(fontLink);
 
-    // 1. OY KONTROLÜ
     const oyKey = `kampanya_oy_${kampanya.id}`;
     const kaydedilenOy = localStorage.getItem(oyKey);
     if (kaydedilenOy) {
       setOyVerildi(kaydedilenOy as 'ise_yaradi' | 'hatali');
     }
 
-    // 2. SAYFA GÖRÜNTÜLENME (HİT) SAYACI
     const goruntulenmeKey = `kampanya_goruntulendi_${kampanya.id}`;
     if (!sessionStorage.getItem(goruntulenmeKey)) {
       const goruntulenmeyiArtir = async () => {
@@ -80,11 +80,10 @@ export default function KampanyaIcerik({
     : null;
 
   const gecmis = gun !== null && gun === 0;
-  const sonSans = gun !== null && gun > 0 && gun <= 3; // YENİ: FOMO Etkisi (Son 3 gün)
+  const sonSans = gun !== null && gun > 0 && gun <= 3;
 
-  // YENİ: Akıllı Yönlendirme Verileri
   const markaBilgisi = kampanya.yapan_marka_bilgisi;
-  const markaSlug = markaBilgisi?.slug; // Server'dan gelmesi şart
+  const markaSlug = markaBilgisi?.slug;
   const markaAdi = markaBilgisi?.marka_adi || 'Marka';
   const geriLink = markaSlug ? `/marka/${markaSlug}` : '/';
   const geriMetin = markaSlug ? `${markaAdi} Fırsatlarına Dön` : 'Ana Sayfa';
@@ -116,7 +115,7 @@ export default function KampanyaIcerik({
 
       <div className="max-w-4xl mx-auto px-6 pt-12">
         
-        {/* YENİ: SEO Breadcrumb */}
+        {/* Breadcrumb */}
         <nav className="flex items-center gap-2 mb-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">
           <Link href="/" className="hover:text-blue-600 transition-colors">Ana Sayfa</Link>
           <span>/</span>
@@ -129,7 +128,7 @@ export default function KampanyaIcerik({
           <span className="text-slate-900 truncate max-w-[150px] md:max-w-[300px]">{kampanya.baslik}</span>
         </nav>
 
-        {/* YENİ: Akıllı Geri Dönüş Butonu */}
+        {/* Geri Dönüş */}
         <Link href={geriLink} className="inline-flex items-center gap-3 mb-10 group no-underline">
           <div className="w-8 h-8 bg-slate-50 text-slate-600 rounded-full flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm border border-slate-200">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -141,6 +140,13 @@ export default function KampanyaIcerik({
             {geriMetin}
           </span>
         </Link>
+
+        {/* ÜST REKLAM — YATAY */}
+        {reklamUst && reklamUst.length > 0 && (
+          <div className="mb-8">
+            <ReklamAlani reklamlar={reklamUst} maxCount={2} variant="banner" />
+          </div>
+        )}
 
         {/* ANA KAMPANYA KARTI */}
         <div className="bg-[#0D0F14] rounded-[3.5rem] overflow-hidden shadow-2xl relative border border-white/5">
@@ -221,7 +227,7 @@ export default function KampanyaIcerik({
               </div>
             </div>
 
-            {/* MASAÜSTÜ CTA BUTONLARI */}
+            {/* MASAÜSTÜ CTA */}
             <div className="hidden md:flex flex-row gap-4 mt-8">
               {disLink ? (
                 <a 
@@ -254,12 +260,14 @@ export default function KampanyaIcerik({
             <span className="text-white/20 font-bold text-[9px] uppercase tracking-widest">biKodVardı</span>
           </div>
         </div>
-        {/* REKLAM ALANI */}
+
+        {/* ALT REKLAM — KARE */}
         {reklamlar && reklamlar.length > 0 && (
           <div className="mt-12 mb-4">
-            <ReklamAlani reklamlar={reklamlar} maxCount={2} />
+            <ReklamAlani reklamlar={reklamlar} maxCount={2} variant="square" />
           </div>
         )}
+
         {/* BENZER KAMPANYALAR */}
         {benzerler.length > 0 && (
           <div className="mt-16 mb-8">
@@ -308,7 +316,7 @@ export default function KampanyaIcerik({
         </div>
       </div>
 
-      {/* YENİ: MOBİL İÇİN YAPIŞKAN CTA BUTONU (Sticky Bottom CTA) */}
+      {/* MOBİL STICKY CTA */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-slate-100 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-50 flex gap-2">
          {disLink ? (
             <a 
@@ -333,7 +341,6 @@ export default function KampanyaIcerik({
             <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
           </button>
       </div>
-
     </main>
   );
 }

@@ -46,13 +46,13 @@ export default function ReklamAlani({
             target="_blank"
             rel="sponsored noopener noreferrer"
             className="block relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow"
-            style={{ aspectRatio: "6 / 1", maxHeight: "120px" }}
+            style={{ aspectRatio: "3 / 1", maxHeight: "160px" }}
           >
             <Image
               src={reklam.gorsel_url}
               alt={reklam.baslik || "Reklam"}
               fill
-              className="object-cover"
+              className="object-contain bg-white"
               sizes="100vw"
             />
             {reklam.etiket && (

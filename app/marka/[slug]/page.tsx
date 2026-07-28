@@ -95,7 +95,10 @@ export default async function MarkaDetay({ params }: { params: Promise<{ slug: s
 
   const kampanyaListesi = kampanyalar || [];
   // Reklam çek
-const reklamAlt = await getReklamlar('marka_alt', 2);
+const [reklamUst, reklamAlt] = await Promise.all([
+  getReklamlar('marka_ust', 2),
+  getReklamlar('marka_alt', 2),
+]);
 
   // 3. BENZER MARKALARI ÇEK (Aynı sektördeki diğer markalar)
   const { data: benzerMarkalar } = await supabase
@@ -223,7 +226,17 @@ const reklamAlt = await getReklamlar('marka_alt', 2);
 
       {/* İÇERİK ALANI */}
       <div className="max-w-5xl mx-auto px-6 mt-10">
-        <div className="space-y-6">
+        {/* ÜST REKLAM — YATAY */}
+        {reklamUst && reklamUst.length > 0 && (
+          <div className="mb-10">
+            <ReklamAlani 
+              reklamlar={reklamUst} 
+              maxCount={2} 
+              variant="banner" 
+            />
+          </div>
+        )}
+          <div className="space-y-6">
           {kampanyaListesi.map((k) => {
             const gun = kalanGunHesapla(k.bitis_date);
             const markaBilgisi = Array.isArray(k.yapan_marka_bilgisi) ? k.yapan_marka_bilgisi[0] : k.yapan_marka_bilgisi;
@@ -385,10 +398,14 @@ const reklamAlt = await getReklamlar('marka_alt', 2);
           </div>
         )}
       </div>
-      {/* REKLAM ALANI */}
+      {/* ALT REKLAM — KARE */}
       {reklamAlt && reklamAlt.length > 0 && (
-        <div className="max-w-5xl mx-auto px-6 mt-16">
-          <ReklamAlani reklamlar={reklamAlt} maxCount={2} />
+        <div className="max-w-5xl mx-auto px-6 mt-16 mb-8">
+          <ReklamAlani 
+            reklamlar={reklamAlt} 
+            maxCount={2} 
+            variant="square" 
+          />
         </div>
       )}
       <footer className="mt-20 py-12 text-center opacity-40">
