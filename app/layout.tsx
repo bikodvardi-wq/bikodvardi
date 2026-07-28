@@ -72,14 +72,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
-              "@type": "WebSite",
+              "@type": "Organization",
               "name": "biKodVardı",
               "url": "https://bikodvardi.com",
-              "potentialAction": {
-                "@type": "SearchAction",
-                "target": "https://bikodvardi.com/?ara={search_term_string}",
-                "query-input": "required name=search_term_string"
-              }
+              "logo": "https://bikodvardi.com/icon.png",
+              "description": "En güncel indirim kodları, banka kampanyaları ve marka fırsatları.",
+              "email": "iletisim@bikodvardi.com",
+              "sameAs": [
+                // Sosyal hesapların olunca buraya ekle
+                // "https://twitter.com/bikodvardi",
+                // "https://www.instagram.com/bikodvardi",
+                // "https://www.facebook.com/bikodvardi"
+              ]
             })
           }}
         />
