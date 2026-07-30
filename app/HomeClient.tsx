@@ -103,11 +103,18 @@ export default function HomeClient({
   };
 
   const optimizeUnsplash = (url: string) => {
-  if (!url || !url.includes('unsplash.com')) return url;
-  const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}w=600&q=75&auto=format`;
-  };
-  
+  if (!url || !url.includes('images.unsplash.com')) return url;
+  try {
+    const u = new URL(url);
+    u.searchParams.set('w', '600');
+    u.searchParams.set('q', '75');
+    u.searchParams.set('auto', 'format');
+    return u.toString();
+  } catch {
+    return url;
+  }
+};
+
   // --- Bülten Aboneliği ---
   const [aboneEmail, setAboneEmail] = useState("");
   const [aboneDurum, setAboneDurum] = useState<'bos' | 'gonderiliyor' | 'basarili' | 'hata'>('bos');
