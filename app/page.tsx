@@ -48,7 +48,7 @@ export default async function Home() {
     .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url, sektor_id)')
     .or(`bitis_date.gt.${now},bitis_date.is.null`)
     .order('created_at', { ascending: false })
-    .limit(20),
+    .limit(8),
 
   supabase
     .from('kampanya')
@@ -56,14 +56,14 @@ export default async function Home() {
     .in('kampanya_turu', [3, 4])
     .or(`bitis_date.gt.${now},bitis_date.is.null`)
     .order('created_at', { ascending: false })
-    .limit(20),
+    .limit(8),
 
   supabase
     .from('kampanya')
     .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url, sektor_id), bitis_date')
     .or(`bitis_date.gt.${now},bitis_date.is.null`)
     .order('created_at', { ascending: false })
-    .limit(1000),
+    .limit(60),
 
   supabase.from('kampanya').select('id', { count: 'exact', head: true }),
   supabase.from('marka').select('id', { count: 'exact', head: true }),

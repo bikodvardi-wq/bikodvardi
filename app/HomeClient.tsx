@@ -147,8 +147,17 @@ export default function HomeClient({
         </Link>
         <div className="flex gap-3">
           <a href="https://wa.me/channel/LINKIN" target="_blank" className="hidden md:flex items-center gap-2 text-sm font-bold text-green-600 bg-green-50 px-4 py-2 rounded-full hover:bg-green-100 transition no-underline border border-green-100">WhatsApp</a>
-          <a href="https://t.me/bikodvardi" target="_blank" className="w-10 h-10 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition border border-blue-100 no-underline">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+         <a
+            href="https://t.me/bikodvardi"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Telegram'da biKodVardı"
+            className="w-10 h-10 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition border border-blue-100 no-underline"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
           </a>
         </div>
       </nav>
@@ -267,22 +276,24 @@ export default function HomeClient({
   {/* Filtreler */}
   <div className="flex flex-wrap justify-center gap-3 mt-6">
     <select
-      value={seciliSektor}
-      onChange={(e) => setSeciliSektor(e.target.value)}
-      className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 
-                 outline-none focus:ring-2 focus:ring-blue-500/20 min-w-[160px]"
-    >
-      <option value="">Tüm Sektörler</option>
-      {sektorler.map((s) => (
-        <option key={s.id} value={s.id}>
-          {s.sektor_adi} ({s.firsatSayisi || 0})
-        </option>
-      ))}
-    </select>
+        value={seciliSektor}
+        onChange={(e) => setSeciliSektor(e.target.value)}
+        aria-label="Sektör seçin"
+        className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 
+                  outline-none focus:ring-2 focus:ring-blue-500/20 min-w-[160px]"
+      >
+        <option value="">Tüm Sektörler</option>
+        {sektorler.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.sektor_adi} ({s.firsatSayisi || 0})
+          </option>
+        ))}
+      </select>
 
     <select
       value={seciliTur}
       onChange={(e) => setSeciliTur(e.target.value)}
+      aria-label="Kampanya türü seçin"
       className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 
                  outline-none focus:ring-2 focus:ring-blue-500/20 min-w-[160px]"
     >
