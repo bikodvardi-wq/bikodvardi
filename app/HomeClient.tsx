@@ -102,6 +102,12 @@ export default function HomeClient({
     setSeciliTur("");
   };
 
+  const optimizeUnsplash = (url: string) => {
+  if (!url || !url.includes('unsplash.com')) return url;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}w=600&q=75&auto=format`;
+  };
+  
   // --- Bülten Aboneliği ---
   const [aboneEmail, setAboneEmail] = useState("");
   const [aboneDurum, setAboneDurum] = useState<'bos' | 'gonderiliyor' | 'basarili' | 'hata'>('bos');
@@ -535,12 +541,12 @@ export default function HomeClient({
                 className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden 
                           hover:border-blue-300 hover:shadow-lg transition-all duration-300 no-underline"
               >
-                {/* Görsel Alanı */}
+               {/* Görsel Alanı */}
                 <div className="h-28 md:h-36 relative overflow-hidden">
                   {s.gorsel_url ? (
                     <div
                       className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                      style={{ backgroundImage: `url('${s.gorsel_url}')` }}
+                      style={{ backgroundImage: `url('${optimizeUnsplash(s.gorsel_url)}')` }}
                     />
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">

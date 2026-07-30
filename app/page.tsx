@@ -32,6 +32,7 @@ export default async function Home() {
   tRes,
   mRes,
   yeniKRes,
+  aktifCountRes,      // ← yeni count
   ucretsizRes,
   tumAktifRes,
   tumToplamRes,
@@ -49,6 +50,11 @@ export default async function Home() {
     .or(`bitis_date.gt.${now},bitis_date.is.null`)
     .order('created_at', { ascending: false })
     .limit(8),
+  
+  supabase
+  .from('kampanya')
+  .select('id', { count: 'exact', head: true })
+  .or(`bitis_date.gt.${now},bitis_date.is.null`),
 
   supabase
     .from('kampanya')
@@ -124,10 +130,10 @@ const sonSansKampanyalar = karistir(
   })).sort((a: any, b: any) => b.firsatSayisi - a.firsatSayisi).slice(0, 12);
 
   const stats = {
-    aktif: tumAktifData.length,
-    toplam: tumToplamRes.count || 0,
-    marka: markaCountRes.count || 0,
-  };
+  aktif: aktifCountRes.count || 0,   // ✅ gerçek sayı
+  toplam: tumToplamRes.count || 0,
+  marka: markaCountRes.count || 0,
+};
 
   return (
     <HomeClient
