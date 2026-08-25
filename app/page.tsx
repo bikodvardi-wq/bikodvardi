@@ -64,12 +64,11 @@ export default async function Home() {
     .order('created_at', { ascending: false })
     .limit(8),
 
-  supabase
+    supabase
     .from('kampanya')
-    .select('*, yapan_marka_bilgisi:yapan_marka(marka_adi, logo_url, sektor_id), bitis_date')
+    .select('id, fayd_marka, gecerli_sektor_id, kampanya_turu, bitis_date')
     .or(`bitis_date.gt.${now},bitis_date.is.null`)
-    .order('created_at', { ascending: false })
-    .limit(60),
+    .range(0, 9999),
 
   supabase.from('kampanya').select('id', { count: 'exact', head: true }),
   supabase.from('marka').select('id', { count: 'exact', head: true }),

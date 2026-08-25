@@ -52,6 +52,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description: descriptionText,
       url: `https://bikodvardi.com/marka/${slug}`,
       type: 'website',
+      images: [
+        {
+          url: marka.logo_url || 'https://bikodvardi.com/og-image.png',
+          width: 1200,
+          height: 630,
+          alt: `${marka.marka_adi} İndirim Kodları`,
+        }
+      ],
     },
   };
 }
@@ -358,8 +366,7 @@ const [reklamUst, reklamAlt] = await Promise.all([
             <div className="grid md:grid-cols-2 gap-10">
               <div className="prose prose-slate text-slate-600 font-medium leading-relaxed">
                 <p className="mb-4">
-                  En güncel <strong>{marka.marka_adi} indirim kodu</strong> ve kampanya seçeneklerini kullanarak alışverişinizi çok daha uygun fiyatlara tamamlayabilirsiniz. biKodVardı olarak her gün en yeni fırsatları sizin için doğruluyoruz.
-                </p>
+                  {marka.aciklama || `En güncel ${marka.marka_adi} indirim kodu ve kampanya seçeneklerini kullanarak alışverişinizi çok daha uygun fiyatlara tamamlayabilirsiniz.`}                </p>
                 <div className="mt-6 border-t border-slate-100 pt-6">
                   <h4 className="font-bold text-slate-900 mb-2">{marka.marka_adi} indirim kodu nasıl bulunur?</h4>
                   <p className="text-sm">Platformumuzda markaya ait en güncel kodlar listelenir. Aktif fırsatlardan birini seçerek hemen kullanabilirsiniz.</p>
