@@ -1,14 +1,28 @@
-import { GoogleAnalytics } from '@next/third-parties/google'  
+import { GoogleAnalytics } from '@next/third-parties/google';
 import type { Metadata, Viewport } from "next";
+import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
-import { AppBackButton } from "./AppBackButton"; // "./components/" kısmını sildik
+import { AppBackButton } from "./AppBackButton";
+
+const outfit = Outfit({
+  subsets: ["latin", "latin-ext"],
+  weight: ["300", "600", "900"],
+  display: "swap",
+  variable: "--font-outfit",
+});
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "700", "800"],
+  display: "swap",
+  variable: "--font-jakarta",
+});
 
 export const viewport: Viewport = {
   themeColor: "#2563eb",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
   viewportFit: "cover",
 };
 
@@ -26,7 +40,7 @@ export const metadata: Metadata = {
   authors: [{ name: "biKodVardı" }],
   creator: "biKodVardı",
   publisher: "biKodVardı",
-  manifest: "/manifest.json", 
+  manifest: "/manifest.json",
   icons: {
     icon: "/icon.png",
     apple: "/apple-icon.png",
@@ -50,14 +64,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr">
+    <html lang="tr" className={`${outfit.variable} ${jakarta.variable}`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap"
-          rel="stylesheet"
-        />
         <Script
           id="adsbygoogle-init"
           strategy="lazyOnload"
@@ -65,8 +73,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           crossOrigin="anonymous"
         />
       </head>
-      <body>
-        <AppBackButton /> {/* Android Geri Tuşu Burada Sessizce Çalışacak */}
+      <body className={jakarta.className}>
+        <AppBackButton />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -78,17 +86,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               "logo": "https://bikodvardi.com/icon.png",
               "description": "En güncel indirim kodları, banka kampanyaları ve marka fırsatları.",
               "email": "iletisim@bikodvardi.com",
-              "sameAs": [
-                // Sosyal hesapların olunca buraya ekle
-                // "https://twitter.com/bikodvardi",
-                // "https://www.instagram.com/bikodvardi",
-                // "https://www.facebook.com/bikodvardi"
-              ]
+              "sameAs": []
             })
           }}
         />
         {children}
-        <GoogleAnalytics gaId="G-0N4WX0JBNB" /> 
+        <GoogleAnalytics gaId="G-0N4WX0JBNB" />
       </body>
     </html>
   );

@@ -53,7 +53,7 @@ export default function ReklamAlani({
               alt={reklam.baslik || "Reklam"}
               fill
               className="object-contain bg-white"
-              sizes="100vw"
+              sizes="(max-width: 768px) 100vw, 1200px"
             />
             {reklam.etiket && (
               <span className="absolute top-2 right-2 bg-black/70 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider backdrop-blur-sm">

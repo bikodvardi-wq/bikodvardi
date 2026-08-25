@@ -8,15 +8,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-jakarta);
+  --font-heading: var(--font-outfit);
 }
 
 /* Capacitor / Mobil Safe Area Desteği */
@@ -26,18 +19,16 @@ html {
 
 body {
   min-height: 100%;
-  /* Üst ve alt boşlukları sistem çubuklarına göre ayarla */
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
-  
-  /* iOS’ta bounce efektini azaltmak için */
   overscroll-behavior-y: none;
-}
-
-body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-jakarta), Arial, Helvetica, sans-serif;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-outfit), sans-serif;
 }
