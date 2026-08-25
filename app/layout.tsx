@@ -1,4 +1,3 @@
-import { GoogleAnalytics } from '@next/third-parties/google';
 import type { Metadata, Viewport } from "next";
 import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
@@ -91,7 +90,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         {children}
-        <GoogleAnalytics gaId="G-0N4WX0JBNB" />
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-0N4WX0JBNB"
+          strategy="lazyOnload"
+        />
+        <Script id="ga-init" strategy="lazyOnload">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-0N4WX0JBNB');
+          `}
+        </Script>
       </body>
     </html>
   );
