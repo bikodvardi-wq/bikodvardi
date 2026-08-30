@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 import type { Metadata } from 'next';
 import HomeClient from './HomeClient';
 import { getReklamlar } from '@/lib/reklam';
-export const revalidate = 300; // 5 dakikada bir yenilensin
+export const revalidate = 3600; // 5 dakikada bir yenilensin
 
 // 🚀 SEO: Ana sayfa artık sunucuda render ediliyor, arama motorları
 // içeriği (kampanyalar, markalar, sektörler) doğrudan HTML içinde görüyor.
