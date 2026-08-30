@@ -68,7 +68,7 @@ export default async function Home() {
     .from('kampanya')
     .select('id, fayd_marka, gecerli_sektor_id, kampanya_turu, bitis_date')
     .or(`bitis_date.gt.${now},bitis_date.is.null`)
-    .range(0, 9999),
+    .limit(2000),
 
   supabase.from('kampanya').select('id', { count: 'exact', head: true }),
   supabase.from('marka').select('id', { count: 'exact', head: true }),
