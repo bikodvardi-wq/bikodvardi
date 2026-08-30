@@ -95,7 +95,7 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
 
         {/* Makale İçeriği (HTML olarak render edilir) */}
         <div 
-          className="prose prose-lg md:prose-xl prose-slate max-w-none prose-headings:font-['Outfit'] prose-headings:font-black prose-a:text-blue-600 prose-img:rounded-3xl"
+          className="prose prose-slate max-w-none"
           dangerouslySetInnerHTML={{ __html: yazi.icerik }} 
         />
       </article>
