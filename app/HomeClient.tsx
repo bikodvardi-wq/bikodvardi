@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import CampaignCard from "@/components/CampaignCard";
 import ReklamAlani from "@/components/ReklamAlani";
@@ -40,10 +39,10 @@ export default function HomeClient({
   const [seciliSektor, setSeciliSektor] = useState<string>("");
   const [seciliTur, setSeciliTur] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const itemsPerPage = 10;
 
   // Sabit Popüler Aramalar
-  const populerAramalar = ["Trendyol", "Spor", "Kozmetik", "Ayakkabı", "Teknoloji"];
+  const populerAramalar = ["Trendyol", "Spor", "Kozmetik", "Ayakkabı"];
 
   const aramaYap = (terim: string) => {
     setAramaTerimi(terim);
@@ -81,22 +80,48 @@ export default function HomeClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filtrelenmisKampanyalar = tumAktifKampanyalar
-    .filter(k => {
-      let uyuyor = true;
-      if (seciliSektor) {
-        uyuyor = uyuyor && (
-          String(k.gecerli_sektor_id) === seciliSektor ||
-          String(k.yapan_marka_bilgisi?.sektor_id) === seciliSektor
-        );
-      }
-      if (seciliTur) {
-        uyuyor = uyuyor && String(k.kampanya_turu) === seciliTur;
-      }
-      return uyuyor;
-    });
+  // Seçilen kategoriye bağlı markaları bul
+const seciliSektorMarkaIdleri = new Set(
+  seciliSektor
+    ? tumMarkalar
+        .filter((marka) => {
+          const anaSektorUyuyor =
+            String(marka.sektor_id) === String(seciliSektor);
 
-  const filtreAktif = seciliSektor || seciliTur;
+          const ekSektorUyuyor =
+            Array.isArray(marka.ek_sektor_idler) &&
+            marka.ek_sektor_idler.some(
+              (sektorId: number | string) =>
+                String(sektorId) === String(seciliSektor)
+            );
+
+          return anaSektorUyuyor || ekSektorUyuyor;
+        })
+        .map((marka) => String(marka.id))
+    : []
+);
+
+const filtrelenmisKampanyalar = tumAktifKampanyalar.filter(
+  (kampanya) => {
+    // Kategori seçilmediyse bütün kategorileri kabul et
+    const kategoriUyuyor =
+      !seciliSektor ||
+      String(kampanya.gecerli_sektor_id) === String(seciliSektor) ||
+      (
+        kampanya.fayd_marka &&
+        seciliSektorMarkaIdleri.has(String(kampanya.fayd_marka))
+      );
+
+    // Kampanya türü seçilmediyse bütün türleri kabul et
+    const turUyuyor =
+      !seciliTur ||
+      String(kampanya.kampanya_turu) === String(seciliTur);
+
+    return kategoriUyuyor && turUyuyor;
+  }
+);
+
+const filtreAktif = Boolean(seciliSektor || seciliTur);
 
   const filtreTemizle = () => {
     setSeciliSektor("");
@@ -206,7 +231,7 @@ export default function HomeClient({
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-              {sonSansKampanyalar.map((k) => (
+              {sonSansKampanyalar.slice(0, 4).map((k) => (
                 <CampaignCard
                   key={k.id}
                   kampanya={k}
@@ -332,8 +357,8 @@ export default function HomeClient({
               </h3>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-5">
-              {ucretsizKampanyalar.map((k) => (
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
+              {ucretsizKampanyalar.slice(0, 4).map((k) => (
                 <CampaignCard
                   key={k.id}
                   kampanya={k}
@@ -344,8 +369,9 @@ export default function HomeClient({
             </div>
           </section>
         )}
-
+        
         {/* YENİ KEŞFEDİLEN FIRSATLAR */}
+        {!filtreAktif && (
         <section className="mb-14">
           <div className="flex items-center justify-between mb-6 px-2">
             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
@@ -355,7 +381,7 @@ export default function HomeClient({
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5">
-            {enYeniKampanyalar.map((k) => (
+            {enYeniKampanyalar.slice(0, 4).map((k) => (
               <CampaignCard
                 key={k.id}
                 kampanya={k}
@@ -364,7 +390,8 @@ export default function HomeClient({
               />
             ))}
           </div>
-        </section>
+          </section>
+        )}
 
         {/* POPÜLER MARKALAR */}
         <div className="max-w-7xl mx-auto mb-16">
@@ -425,7 +452,9 @@ export default function HomeClient({
                   {s.gorsel_url ? (
                     <div
                       className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                      style={{ backgroundImage: `url('${optimizeUnsplash(s.gorsel_url)}')` }}
+                      style={{
+                        backgroundImage: `url('${optimizeUnsplash(s.gorsel_url)}')`,
+                      }}
                     />
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
@@ -434,6 +463,7 @@ export default function HomeClient({
                       </span>
                     </div>
                   )}
+
                   {/* Hafif karartma */}
                   <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
                 </div>

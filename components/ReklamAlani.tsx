@@ -5,11 +5,11 @@ import Link from "next/link";
 
 interface Reklam {
   id: number;
-  baslik: string;
+  baslik?: string | null;
   gorsel_url: string;
   link_url: string;
   konum?: string;
-  etiket?: string;
+  etiket?: string | null;
 }
 
 interface ReklamAlaniProps {
@@ -28,74 +28,68 @@ export default function ReklamAlani({
   const liste = !reklamlar
     ? []
     : Array.isArray(reklamlar)
-    ? reklamlar
-    : [reklamlar];
+      ? reklamlar
+      : [reklamlar];
 
-  const gosterilecekler = liste.slice(0, maxCount);
+  const gosterilecekler = liste
+    .filter((reklam) => reklam.gorsel_url && reklam.link_url)
+    .slice(0, maxCount);
 
   if (gosterilecekler.length === 0) return null;
 
   // YATAY BANNER
   if (variant === "banner") {
     return (
-      <div className={`flex flex-col gap-3 ${className}`}>
+      <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${className}`}>
         {gosterilecekler.map((reklam) => (
           <Link
             key={reklam.id}
             href={reklam.link_url}
             target="_blank"
             rel="sponsored noopener noreferrer"
-            className="block relative w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow"
-            style={{ aspectRatio: "3 / 1", maxHeight: "160px" }}
+            aria-label={reklam.baslik || "İş birliği bağlantısını aç"}
+            className="group relative block h-[112px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg md:h-[132px]"
           >
             <Image
               src={reklam.gorsel_url}
-              alt={reklam.baslik || "Reklam"}
+              alt={reklam.baslik || "İş birliği bannerı"}
               fill
-              className="object-contain bg-white"
-              sizes="(max-width: 768px) 100vw, 1200px"
+              className="object-contain p-2 transition-transform duration-300 group-hover:scale-[1.01]"
+              sizes="(max-width: 640px) 100vw, 50vw"
             />
-            {reklam.etiket && (
-              <span className="absolute top-2 right-2 bg-black/70 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider backdrop-blur-sm">
-                {reklam.etiket}
-              </span>
-            )}
+
+            <span className="absolute right-2.5 top-2.5 z-10 rounded-full border border-white/20 bg-slate-900/75 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wider text-white shadow-sm backdrop-blur-md">
+              {reklam.etiket || "İş Birliği"}
+            </span>
           </Link>
         ))}
       </div>
     );
   }
 
-  // KARE
+  // KARE REKLAM
   return (
-    <div
-      className={`grid gap-3 ${
-        gosterilecekler.length === 1
-          ? "grid-cols-1 max-w-[280px] mx-auto"
-          : "grid-cols-2 max-w-2xl mx-auto"
-      } ${className}`}
-    >
+    <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${className}`}>
       {gosterilecekler.map((reklam) => (
         <Link
           key={reklam.id}
           href={reklam.link_url}
           target="_blank"
           rel="sponsored noopener noreferrer"
-          className="block relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow group"
-          style={{ aspectRatio: "1 / 1" }}
+          aria-label={reklam.baslik || "İş birliği bağlantısını aç"}
+          className="group relative block aspect-square overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg"
         >
           <Image
             src={reklam.gorsel_url}
-            alt={reklam.baslik || "Reklam"}
+            alt={reklam.baslik || "İş birliği görseli"}
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-            sizes="(max-width: 768px) 50vw, 280px"
+            className="object-contain p-3 transition-transform duration-300 group-hover:scale-[1.01]"
+            sizes="(max-width: 640px) 100vw, 50vw"
           />
-          {reklam.etiket && (
-            <span className="absolute top-2 right-2 bg-black/70 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider backdrop-blur-sm">
-              {reklam.etiket}
-            </span>
-          )}
+
+          <span className="absolute right-3 top-3 z-10 rounded-full border border-white/20 bg-slate-900/75 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wider text-white shadow-sm backdrop-blur-md">
+            {reklam.etiket || "İş Birliği"}
+          </span>
         </Link>
       ))}
     </div>
