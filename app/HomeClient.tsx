@@ -45,25 +45,71 @@ export default function HomeClient({
   const populerAramalar = ["Trendyol", "Spor", "Kozmetik", "Ayakkabı"];
 
   const aramaYap = (terim: string) => {
-    setAramaTerimi(terim);
-    if (terim.length > 1) {
-      const kucukTerim = terim.toLocaleLowerCase('tr-TR');
+  setAramaTerimi(terim);
 
-      const markaSonuclari = tumMarkalar
-        .filter(m => m.marka_adi.toLocaleLowerCase('tr-TR').includes(kucukTerim))
-        .map(m => ({ ...m, tip: 'marka' }))
-        .slice(0, 5);
+  const temizTerim = terim.trim();
 
-      const sektorSonuclari = sektorler
-        .filter(s => s.sektor_adi.toLocaleLowerCase('tr-TR').includes(kucukTerim))
-        .map(s => ({ ...s, tip: 'sektor' }))
-        .slice(0, 3);
+  if (temizTerim.length < 2) {
+    setAramaSonuclari([]);
+    return;
+  }
 
-      setAramaSonuclari([...sektorSonuclari, ...markaSonuclari]);
-    } else {
-      setAramaSonuclari([]);
-    }
-  };
+  const kucukTerim = temizTerim.toLocaleLowerCase("tr-TR");
+
+  // Kampanya sonuçları
+  const kampanyaSonuclari = tumAktifKampanyalar
+    .filter((kampanya) => {
+      const baslik = String(
+        kampanya.baslik || ""
+      ).toLocaleLowerCase("tr-TR");
+
+      const markaAdi = String(
+        kampanya.yapan_marka_bilgisi?.marka_adi || ""
+      ).toLocaleLowerCase("tr-TR");
+
+      return (
+        baslik.includes(kucukTerim) ||
+        markaAdi.includes(kucukTerim)
+      );
+    })
+    .slice(0, 5)
+    .map((kampanya) => ({
+      ...kampanya,
+      tip: "kampanya",
+    }));
+
+  // Marka sonuçları
+  const markaSonuclari = tumMarkalar
+    .filter((marka) =>
+      String(marka.marka_adi || "")
+        .toLocaleLowerCase("tr-TR")
+        .includes(kucukTerim)
+    )
+    .slice(0, 3)
+    .map((marka) => ({
+      ...marka,
+      tip: "marka",
+    }));
+
+  // Kategori sonuçları
+  const sektorSonuclari = sektorler
+    .filter((sektor) =>
+      String(sektor.sektor_adi || "")
+        .toLocaleLowerCase("tr-TR")
+        .includes(kucukTerim)
+    )
+    .slice(0, 2)
+    .map((sektor) => ({
+      ...sektor,
+      tip: "sektor",
+    }));
+
+  setAramaSonuclari([
+    ...kampanyaSonuclari,
+    ...markaSonuclari,
+    ...sektorSonuclari,
+  ]);
+};
 
   const hizliArama = (terim: string) => {
     aramaYap(terim);
@@ -184,18 +230,65 @@ const filtreAktif = Boolean(seciliSektor || seciliTur);
             bi<span className="text-blue-600">kod</span>vardı
           </div>
         </Link>
-        <div className="flex gap-3">
-          <a href="https://wa.me/channel/LINKIN" target="_blank" className="hidden md:flex items-center gap-2 text-sm font-bold text-green-600 bg-green-50 px-4 py-2 rounded-full hover:bg-green-100 transition no-underline border border-green-100">WhatsApp</a>
-         <a
+        <div className="flex items-center gap-2 md:gap-3">
+          {/* Mobil uygulama */}
+          <Link
+            href="/app"
+            aria-label="BiKodVardı mobil uygulamasını indir"
+            className="flex h-10 items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 text-blue-600 no-underline transition hover:border-blue-200 hover:bg-blue-100 md:px-4"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="6" y="2" width="12" height="20" rx="2" />
+              <path d="M10 18h4" />
+            </svg>
+
+            <span className="hidden text-xs font-bold sm:inline">
+              Uygulamayı İndir
+            </span>
+          </Link>
+
+          {/* WhatsApp */}
+          <a
+            href="https://whatsapp.com/channel/0029VbCMRE8EFeXm1h0Lw92F"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="BiKodVardı WhatsApp kanalını takip et"
+            className="hidden items-center gap-2 rounded-full border border-green-100 bg-green-50 px-4 py-2 text-sm font-bold text-green-600 no-underline transition hover:bg-green-100 md:flex"
+          >
+            WhatsApp
+          </a>
+
+          {/* Telegram */}
+          <a
             href="https://t.me/bikodvardi"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Telegram'da biKodVardı"
-            className="w-10 h-10 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition border border-blue-100 no-underline"
+            aria-label="Telegram'da BiKodVardı"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-blue-600 no-underline transition hover:bg-blue-100"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
             </svg>
           </a>
         </div>
@@ -580,10 +673,25 @@ const filtreAktif = Boolean(seciliSektor || seciliTur);
             <div className="space-y-4">
               <h4 className="text-slate-900 font-black uppercase text-xs tracking-widest" style={{ fontFamily: 'Outfit' }}>Keşfet</h4>
               <nav className="flex flex-col gap-2">
-                <Link href="/blog" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">Blog</Link>
-                <Link href="/hakkimizda" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">Hakkımızda</Link>
-                <Link href="/iletisim" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">İletişim</Link>
-                <Link href="/gizlilik-politikasi" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">Gizlilik Politikası</Link>
+                <Link href="/app" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">
+                  Mobil Uygulama
+                </Link>
+
+                <Link href="/blog" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">
+                  Blog
+                </Link>
+
+                <Link href="/hakkimizda" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">
+                  Hakkımızda
+                </Link>
+
+                <Link href="/iletisim" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">
+                  İletişim
+                </Link>
+
+                <Link href="/gizlilik-politikasi" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">
+                  Gizlilik Politikası
+                </Link>
               </nav>
             </div>
             <div className="space-y-4 md:text-right">

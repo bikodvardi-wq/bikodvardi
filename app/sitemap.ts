@@ -1,60 +1,148 @@
-import { supabase } from '@/lib/supabase';
+import type { MetadataRoute } from "next";
+import { supabase } from "@/lib/supabase";
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// Sitemap en fazla 5 dakika önbellekte tutulur.
+// Silinen veya süresi biten kampanyalar en geç 5 dakika içinde çıkar.
+export const revalidate = 300;
 
-export default async function sitemap() {
-  const baseUrl = 'https://bikodvardi.com';
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const baseUrl = "https://bikodvardi.com";
+  const now = new Date().toISOString();
+
+  // Sabit ve indexlenmesini istediğimiz sayfalar
+  const statikSayfalar: MetadataRoute.Sitemap = [
+    {
+      url: baseUrl,
+      changeFrequency: "daily",
+      priority: 1,
+    },
+    {
+      url: `${baseUrl}/app`,
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/blog`,
+      changeFrequency: "daily",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/hakkimizda`,
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
+      url: `${baseUrl}/iletisim`,
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
+      url: `${baseUrl}/gizlilik-politikasi`,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+  ];
 
   try {
-    // 🔥 YENİ: Bugünün tarihini alıyoruz ki süresi geçenleri eleyelim
-    const now = new Date().toISOString();
+    const [kampanyalarRes, sektorlerRes, markalarRes] =
+      await Promise.all([
+        // Yalnızca aktif veya süresiz kampanyalar
+        supabase
+          .from("kampanya")
+          .select("slug, created_at")
+          .not("slug", "is", null)
+          .or(`bitis_date.gt.${now},bitis_date.is.null`)
+          .order("created_at", { ascending: false }),
 
-    const [kampanyalarRes, sektorlerRes, markalarRes] = await Promise.all([
-      // 🔥 DEĞİŞİKLİK BURADA: Sadece bitiş tarihi bugünden büyük olanları VEYA süresiz (null) olanları çekiyoruz
-      supabase
-        .from('kampanya')
-        .select('slug, created_at')
-        .or(`bitis_date.gt.${now},bitis_date.is.null`),
-      
-      supabase.from('sektor').select('slug'),
-      supabase.from('marka').select('slug')
-    ]);
+        // Kategori sayfaları
+        supabase
+          .from("sektor")
+          .select("slug")
+          .not("slug", "is", null),
 
-    const kampanyaUrls = (kampanyalarRes.data || [])
-      .filter(k => k.slug)
-      .map((k) => ({
-        url: `${baseUrl}/kampanya/${k.slug}`,
-        lastModified: k.created_at ? new Date(k.created_at) : new Date(),
-        changeFrequency: 'daily' as const,
-        priority: 1.0,
+        // Marka sayfaları
+        supabase
+          .from("marka")
+          .select("slug")
+          .not("slug", "is", null),
+      ]);
+
+    if (kampanyalarRes.error) {
+      console.error(
+        "Sitemap kampanyaları alınamadı:",
+        kampanyalarRes.error
+      );
+    }
+
+    if (sektorlerRes.error) {
+      console.error(
+        "Sitemap sektörleri alınamadı:",
+        sektorlerRes.error
+      );
+    }
+
+    if (markalarRes.error) {
+      console.error(
+        "Sitemap markaları alınamadı:",
+        markalarRes.error
+      );
+    }
+
+    const kampanyaUrls: MetadataRoute.Sitemap = (
+      kampanyalarRes.data || []
+    )
+      .filter(
+        (kampanya) =>
+          typeof kampanya.slug === "string" &&
+          kampanya.slug.trim().length > 0
+      )
+      .map((kampanya) => ({
+        url: `${baseUrl}/kampanya/${kampanya.slug}`,
+        lastModified: kampanya.created_at
+          ? new Date(kampanya.created_at)
+          : undefined,
+        changeFrequency: "daily",
+        priority: 0.9,
       }));
 
-    const sektorUrls = (sektorlerRes.data || [])
-      .filter(s => s.slug)
-      .map((s) => ({
-        url: `${baseUrl}/sektor/${s.slug}`,
-        lastModified: new Date(),
-        changeFrequency: 'weekly' as const,
+    const sektorUrls: MetadataRoute.Sitemap = (
+      sektorlerRes.data || []
+    )
+      .filter(
+        (sektor) =>
+          typeof sektor.slug === "string" &&
+          sektor.slug.trim().length > 0
+      )
+      .map((sektor) => ({
+        url: `${baseUrl}/sektor/${sektor.slug}`,
+        changeFrequency: "daily",
         priority: 0.8,
       }));
 
-    const markaUrls = (markalarRes.data || [])
-      .filter(m => m.slug)
-      .map((m) => ({
-        url: `${baseUrl}/marka/${m.slug}`,
-        lastModified: new Date(),
-        changeFrequency: 'weekly' as const,
+    const markaUrls: MetadataRoute.Sitemap = (
+      markalarRes.data || []
+    )
+      .filter(
+        (marka) =>
+          typeof marka.slug === "string" &&
+          marka.slug.trim().length > 0
+      )
+      .map((marka) => ({
+        url: `${baseUrl}/marka/${marka.slug}`,
+        changeFrequency: "daily",
         priority: 0.8,
       }));
 
     return [
-      { url: baseUrl, lastModified: new Date(), changeFrequency: 'always', priority: 1.0 },
+      ...statikSayfalar,
       ...kampanyaUrls,
       ...sektorUrls,
       ...markaUrls,
     ];
   } catch (error) {
-    return [{ url: baseUrl, lastModified: new Date() }];
+    console.error("Sitemap oluşturulamadı:", error);
+
+    // Supabase geçici olarak çalışmasa bile sabit sayfalar kalır.
+    return statikSayfalar;
   }
 }

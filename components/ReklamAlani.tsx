@@ -37,59 +37,58 @@ export default function ReklamAlani({
 
   if (gosterilecekler.length === 0) return null;
 
-  // YATAY BANNER
+  // YATAY BANNER — masaüstünde 2 tane yan yana
   if (variant === "banner") {
     return (
-      <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${className}`}>
+      <div
+        className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${className}`}
+      >
         {gosterilecekler.map((reklam) => (
           <Link
             key={reklam.id}
             href={reklam.link_url}
             target="_blank"
             rel="sponsored noopener noreferrer"
-            aria-label={reklam.baslik || "İş birliği bağlantısını aç"}
-            className="group relative block h-[112px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg md:h-[132px]"
+            aria-label={reklam.baslik || "Reklam bağlantısını aç"}
+            className="group relative block aspect-[4/1] w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg"
           >
             <Image
               src={reklam.gorsel_url}
-              alt={reklam.baslik || "İş birliği bannerı"}
+              alt={reklam.baslik || "Reklam bannerı"}
               fill
-              className="object-contain p-2 transition-transform duration-300 group-hover:scale-[1.01]"
+              className="object-cover transition-transform duration-300 group-hover:scale-[1.01]"
               sizes="(max-width: 640px) 100vw, 50vw"
             />
-
             <span className="absolute right-2.5 top-2.5 z-10 rounded-full border border-white/20 bg-slate-900/75 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wider text-white shadow-sm backdrop-blur-md">
-              {reklam.etiket || "İş Birliği"}
-            </span>
+            {reklam.etiket?.trim() || "Partner"}
+          </span>
           </Link>
         ))}
       </div>
     );
   }
 
-  // KARE REKLAM
+  // KARE REKLAM — 800 × 800
   return (
-    <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${className}`}>
+    <div
+      className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${className}`}
+    >
       {gosterilecekler.map((reklam) => (
         <Link
           key={reklam.id}
           href={reklam.link_url}
           target="_blank"
           rel="sponsored noopener noreferrer"
-          aria-label={reklam.baslik || "İş birliği bağlantısını aç"}
-          className="group relative block aspect-square overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg"
+          aria-label={reklam.baslik || "Reklam bağlantısını aç"}
+          className="group relative block aspect-square w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg"
         >
           <Image
             src={reklam.gorsel_url}
-            alt={reklam.baslik || "İş birliği görseli"}
+            alt={reklam.baslik || "Reklam görseli"}
             fill
-            className="object-contain p-3 transition-transform duration-300 group-hover:scale-[1.01]"
+            className="object-cover transition-transform duration-300 group-hover:scale-[1.01]"
             sizes="(max-width: 640px) 100vw, 50vw"
           />
-
-          <span className="absolute right-3 top-3 z-10 rounded-full border border-white/20 bg-slate-900/75 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wider text-white shadow-sm backdrop-blur-md">
-            {reklam.etiket || "İş Birliği"}
-          </span>
         </Link>
       ))}
     </div>

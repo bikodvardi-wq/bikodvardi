@@ -124,58 +124,89 @@ export default function HeroSection({
             <div className="absolute left-0 right-0 top-full z-50 mt-3
                             overflow-hidden rounded-2xl border border-slate-200
                             bg-white p-2 shadow-2xl">
-              {aramaSonuclari.map((item: any, index: number) => (
-                <Link
-                  key={index}
-                  href={
-                    item.tip === "sektor"
-                      ? `/sektor/${item.slug}`
-                      : `/marka/${item.slug}`
-                  }
-                  className="group flex items-center justify-between
-                             rounded-xl p-3.5 text-slate-900 no-underline
-                             transition hover:bg-slate-50"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center
-                                    rounded-xl border border-slate-200 bg-white">
-                      {item.tip === "sektor" ? (
-                        <span className="text-sm">#</span>
-                      ) : item.logo_url ? (
-                        <Image
-                          src={item.logo_url}
-                          width={20}
-                          height={20}
-                          className="object-contain"
-                          alt={item.marka_adi || "Marka"}
-                        />
-                      ) : (
-                        <span className="text-xs font-black">
-                          {item.marka_adi?.charAt(0)}
-                        </span>
-                      )}
-                    </div>
+              {aramaSonuclari.map((item: any) => {
+  const sonucLinki =
+    item.tip === "kampanya"
+      ? `/kampanya/${item.slug}`
+      : item.tip === "sektor"
+        ? `/sektor/${item.slug}`
+        : `/marka/${item.slug}`;
 
-                    <div>
-                      <div className="text-sm font-bold group-hover:text-blue-600">
-                        {item.tip === "sektor"
-                          ? item.sektor_adi
-                          : item.marka_adi}
-                      </div>
+  const sonucBasligi =
+    item.tip === "kampanya"
+      ? item.baslik
+      : item.tip === "sektor"
+        ? item.sektor_adi
+        : item.marka_adi;
 
-                      <div className="mt-0.5 text-[11px] text-slate-400">
-                        {item.tip === "sektor"
-                          ? "Kategori kampanyalarını görüntüle"
-                          : "Markanın kampanyalarını görüntüle"}
-                      </div>
-                    </div>
-                  </div>
+  const sonucAciklamasi =
+    item.tip === "kampanya"
+      ? item.yapan_marka_bilgisi?.marka_adi ||
+        "Kampanyayı görüntüle"
+      : item.tip === "sektor"
+        ? "Kategori kampanyalarını görüntüle"
+        : "Markanın kampanyalarını görüntüle";
 
-                  <span className="text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-500">
-                    →
-                  </span>
-                </Link>
-              ))}
+  return (
+    <Link
+      key={`${item.tip}-${item.id}`}
+      href={sonucLinki}
+      className="group flex items-center justify-between rounded-xl p-3.5 text-slate-900 no-underline transition hover:bg-slate-50"
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white">
+          {item.tip === "kampanya" ? (
+            <svg
+              width="17"
+              height="17"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-blue-600"
+              aria-hidden="true"
+            >
+              <path d="M20.59 13.41 11 3.83V3H4v7h.83l9.58 9.59a2 2 0 0 0 2.82 0l3.36-3.36a2 2 0 0 0 0-2.82Z" />
+              <circle cx="7.5" cy="6.5" r=".5" fill="currentColor" />
+            </svg>
+          ) : item.tip === "sektor" ? (
+            <span className="text-sm font-black text-blue-600">
+              #
+            </span>
+          ) : item.logo_url ? (
+            <Image
+              src={item.logo_url}
+              width={20}
+              height={20}
+              className="object-contain"
+              alt={item.marka_adi || "Marka"}
+            />
+          ) : (
+            <span className="text-xs font-black text-slate-600">
+              {item.marka_adi?.charAt(0).toUpperCase()}
+            </span>
+          )}
+        </div>
+
+        <div className="min-w-0">
+          <div className="truncate text-sm font-bold group-hover:text-blue-600">
+            {sonucBasligi}
+          </div>
+
+          <div className="mt-0.5 truncate text-[11px] text-slate-400">
+            {sonucAciklamasi}
+          </div>
+        </div>
+      </div>
+
+      <span className="ml-3 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-500">
+        →
+      </span>
+    </Link>
+  );
+})}
             </div>
           )}
         </div>
