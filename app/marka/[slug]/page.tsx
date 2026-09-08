@@ -7,62 +7,108 @@ import { getReklamlar } from '@/lib/reklam';
 import ReklamAlani from '@/components/ReklamAlani';
 
 // ISR: Her 1 saatte bir yenile
-export const revalidate = 3600; 
+export const revalidate = 3600;
 
-export async function generateStaticParams() {
-  const { data: markalar, error } = await supabase
-    .from('marka')
-    .select('slug')
-    .neq('slug', null);
+export async function generateMetadata({
+        params,
+      }: {
+        params: Promise<{ slug: string }>;
+      }): Promise<Metadata> {
+        const { slug } = await params;
+        const now = new Date().toISOString();
 
-  if (error) {
-    console.error('generateStaticParams hatası:', error);
-    return [];
-  }
+        const { data: marka } = await supabase
+          .from("marka")
+          .select("id, marka_adi, slug, aciklama, logo_url, sektor_id")
+          .eq("slug", slug)
+          .maybeSingle();
 
-  return markalar?.map((m) => ({ slug: m.slug })) || [];
-}
-
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params;
-
-  const { data: marka } = await supabase
-    .from('marka')
-    .select('*')
-    .eq('slug', slug)
-    .single();
-
-  if (!marka) {
-    return {
-      title: 'Marka Bulunamadı | biKodVardı',
-      description: 'Aradığınız marka sayfası bulunamadı.',
-    };
-  }
-
-  const yil = new Date().getFullYear();
-  const descriptionText =
-    marka.aciklama ||
-    `${marka.marka_adi} mağazasında geçerli güncel indirim kuponları, hediye çekleri ve aktif kampanyalar. ${marka.marka_adi} alışverişini ucuza getir!`;
-
-  return {
-    title: `${marka.marka_adi} İndirim Kodu ve Kampanyaları - ${yil}`,
-    description: descriptionText,
-    openGraph: {
-      title: `${marka.marka_adi} İndirim Kodları ${yil}`,
-      description: descriptionText,
-      url: `https://bikodvardi.com/marka/${slug}`,
-      type: 'website',
-      images: [
-        {
-          url: marka.logo_url || 'https://bikodvardi.com/og-image.png',
-          width: 1200,
-          height: 630,
-          alt: `${marka.marka_adi} İndirim Kodları`,
+        if (!marka) {
+          notFound();
         }
-      ],
-    },
-  };
-}
+
+        const kapsamKosulu = marka.sektor_id
+          ? `fayd_marka.eq.${marka.id},gecerli_sektor_id.eq.${marka.sektor_id}`
+          : `fayd_marka.eq.${marka.id}`;
+
+        const { count, error: countError } = await supabase
+          .from("kampanya")
+          .select("id", { count: "exact", head: true })
+          .or(kapsamKosulu)
+          .or(`bitis_date.gt.${now},bitis_date.is.null`);
+
+        // Sorgu hatası olursa yanlışlıkla sayfayı noindex yapmıyoruz.
+        const indexlenebilir = countError ? true : (count || 0) > 0;
+
+        const yil = new Date().getFullYear();
+        const canonicalUrl = `https://bikodvardi.com/marka/${marka.slug}`;
+
+        const temizAciklama = (marka.aciklama || "")
+          .replace(/<[^>]*>/g, " ")
+          .replace(/&nbsp;/gi, " ")
+          .replace(/&amp;/gi, "&")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        const varsayilanAciklama =
+          `${marka.marka_adi} indirim kodları, kuponları ve güncel ` +
+          `kampanyalarını inceleyin. Aktif ${marka.marka_adi} fırsatları biKodVardı'da.`;
+
+        const descriptionText = temizAciklama || varsayilanAciklama;
+
+        const description =
+          descriptionText.length > 155
+            ? `${descriptionText.slice(0, 152).trim()}...`
+            : descriptionText;
+
+        const title =
+          `${marka.marka_adi} İndirim Kodu ve Kampanyaları - ${yil} | biKodVardı`;
+
+        return {
+          title,
+          description,
+
+          alternates: {
+            canonical: canonicalUrl,
+          },
+
+          robots: {
+            index: indexlenebilir,
+            follow: true,
+            googleBot: {
+              index: indexlenebilir,
+              follow: true,
+              "max-image-preview": "large",
+              "max-snippet": -1,
+              "max-video-preview": -1,
+            },
+          },
+
+          openGraph: {
+            title,
+            description,
+            url: canonicalUrl,
+            siteName: "biKodVardı",
+            locale: "tr_TR",
+            type: "website",
+            images: [
+              {
+                url: "https://bikodvardi.com/og-image.png",
+                width: 1200,
+                height: 630,
+                alt: `${marka.marka_adi} indirim kodları`,
+              },
+            ],
+          },
+
+          twitter: {
+            card: "summary_large_image",
+            title,
+            description,
+            images: ["https://bikodvardi.com/og-image.png"],
+          },
+        };
+      }
 
 const kalanGunHesapla = (tarihVerisi: string | null) => {
   if (!tarihVerisi) return null;
@@ -89,15 +135,20 @@ export default async function MarkaDetay({ params }: { params: Promise<{ slug: s
 
   const now = new Date().toISOString();
 
+  // Sektör bilgisi olmayan markalarda geçersiz "eq.null" sorgusunu önler.
+  const kapsamKosulu = marka.sektor_id
+    ? `fayd_marka.eq.${marka.id},gecerli_sektor_id.eq.${marka.sektor_id}`
+    : `fayd_marka.eq.${marka.id}`;
+
   // 2. KAMPANYALARI ÇEK
   const { data: kampanyalar } = await supabase
     .from('kampanya')
     .select(`
       *,
       yapan_marka_bilgisi:yapan_marka ( marka_adi, logo_url ),
-      tur_bilgisi:kampanya_turu ( tur_adi ) 
+      tur_bilgisi:kampanya_turu ( tur_adi )
     `)
-    .or(`fayd_marka.eq.${marka.id},gecerli_sektor_id.eq.${marka.sektor_id}`)
+    .or(kapsamKosulu)
     .or(`bitis_date.gt.${now},bitis_date.is.null`)
     .order('id', { ascending: false });
 
@@ -150,11 +201,15 @@ const [reklamUst, reklamAlt] = await Promise.all([
   return (
     <main className="min-h-screen bg-[#F0F4F8] font-['Plus_Jakarta_Sans'] pb-24 text-left">
       {/* JSON-LD Schema Enjeksiyonu */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
-      />
-      
+      {kampanyaListesi.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(faqSchema).replace(/</g, "\\u003c"),
+          }}
+        />
+      )}
+
       <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap"
         rel="stylesheet"
@@ -237,10 +292,10 @@ const [reklamUst, reklamAlt] = await Promise.all([
         {/* ÜST REKLAM — YATAY */}
         {reklamUst && reklamUst.length > 0 && (
           <div className="mb-10">
-            <ReklamAlani 
-              reklamlar={reklamUst} 
-              maxCount={2} 
-              variant="banner" 
+            <ReklamAlani
+              reklamlar={reklamUst}
+              maxCount={2}
+              variant="banner"
             />
           </div>
         )}
@@ -252,10 +307,9 @@ const [reklamUst, reklamAlt] = await Promise.all([
             const yapanMarkaLogo = markaBilgisi?.logo_url;
             const turBilgisi = Array.isArray(k.tur_bilgisi) ? k.tur_bilgisi[0] : k.tur_bilgisi;
             const turAdi = turBilgisi?.tur_adi || (k.kampanya_turu || 'Kampanya');
-            
-            // Sosyal Kanıt: Tıklanma sayısı veya dinamik bir sayı
-            const tiklanma = k.tiklanma_sayisi > 0 ? k.tiklanma_sayisi : Math.floor(Math.random() * 40) + 10;
 
+            // Sosyal Kanıt: Tıklanma sayısı veya dinamik bir sayı
+            const tiklanma = Number(k.tiklanma_sayisi || 0);
             return (
               <div
                 key={k.id}
@@ -287,11 +341,15 @@ const [reklamUst, reklamAlt] = await Promise.all([
                       </span>
                     </div>
 
-                    {/* YENİ: Sosyal Kanıt (Social Proof) Rozeti */}
-                    <div className="hidden md:flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/20 px-3 py-1.5 rounded-lg">
-                      <span className="text-[10px]">🔥</span>
-                      <span className="text-orange-400 text-[9px] font-black uppercase tracking-widest">{tiklanma} Kullanım</span>
-                    </div>
+                    {/* Gerçek kullanım sayısı varsa göster */}
+                    {tiklanma > 0 && (
+                      <div className="hidden md:flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/20 px-3 py-1.5 rounded-lg">
+                        <span className="text-[10px]">🔥</span>
+                        <span className="text-orange-400 text-[9px] font-black uppercase tracking-widest">
+                          {tiklanma.toLocaleString("tr-TR")} kullanım
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <h3 className="text-2xl md:text-3xl font-[800] text-white leading-[1.2] mb-6 tracking-tight relative z-10" style={{ fontFamily: 'Outfit' }}>
@@ -313,7 +371,7 @@ const [reklamUst, reklamAlt] = await Promise.all([
                     <a
                       href={marka.affiliate_link}
                       target="_blank"
-                      rel="noopener noreferrer"
+                      rel="sponsored noopener noreferrer"
                       className="w-full bg-orange-500 text-white py-4 rounded-[1.8rem] font-black text-[10px] uppercase tracking-[0.15em] shadow-xl hover:bg-orange-600 transition-all text-center no-underline animate-pulse"
                     >
                       MAĞAZAYA GİT
@@ -340,11 +398,11 @@ const [reklamUst, reklamAlt] = await Promise.all([
             </div>
             <h3 className="text-2xl font-black text-slate-900 mb-2" style={{ fontFamily: 'Outfit' }}>Şu an aktif fırsat bulunmuyor</h3>
             <p className="text-slate-500 font-medium mb-8">Ancak {sektorAdi} kategorisindeki diğer markaların indirimlerini kaçırma!</p>
-            
+
             {benzerMarkaListesi.length > 0 && (
               <div className="flex flex-wrap gap-3 justify-center">
                 {benzerMarkaListesi.map((m) => (
-                  <Link 
+                  <Link
                     key={m.slug}
                     href={`/marka/${m.slug}`}
                     className="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all px-6 py-3 rounded-2xl font-bold text-sm"
@@ -393,7 +451,7 @@ const [reklamUst, reklamAlt] = await Promise.all([
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">DİĞER {sektorAdi.toUpperCase()} MARKALARI</p>
             <div className="flex flex-wrap gap-2 justify-center">
               {benzerMarkaListesi.map((m) => (
-                <Link 
+                <Link
                   key={m.slug}
                   href={`/marka/${m.slug}`}
                   className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm"
@@ -408,10 +466,10 @@ const [reklamUst, reklamAlt] = await Promise.all([
       {/* ALT REKLAM — KARE */}
       {reklamAlt && reklamAlt.length > 0 && (
         <div className="max-w-5xl mx-auto px-6 mt-16 mb-8">
-          <ReklamAlani 
-            reklamlar={reklamAlt} 
-            maxCount={2} 
-            variant="square" 
+          <ReklamAlani
+            reklamlar={reklamAlt}
+            maxCount={2}
+            variant="square"
           />
         </div>
       )}

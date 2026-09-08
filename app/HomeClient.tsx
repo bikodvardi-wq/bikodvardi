@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+/* eslint-disable @next/next/no-img-element */
+
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import CampaignCard from "@/components/CampaignCard";
@@ -127,44 +129,53 @@ export default function HomeClient({
   }, []);
 
   // Seçilen kategoriye bağlı markaları bul
-const seciliSektorMarkaIdleri = new Set(
-  seciliSektor
-    ? tumMarkalar
-        .filter((marka) => {
-          const anaSektorUyuyor =
-            String(marka.sektor_id) === String(seciliSektor);
+const seciliSektorMarkaIdleri = useMemo(() => {
+  if (!seciliSektor) return new Set<string>();
 
-          const ekSektorUyuyor =
-            Array.isArray(marka.ek_sektor_idler) &&
-            marka.ek_sektor_idler.some(
-              (sektorId: number | string) =>
-                String(sektorId) === String(seciliSektor)
-            );
+  return new Set(
+    tumMarkalar
+      .filter((marka) => {
+        const anaSektorUyuyor =
+          String(marka.sektor_id) === String(seciliSektor);
 
-          return anaSektorUyuyor || ekSektorUyuyor;
-        })
-        .map((marka) => String(marka.id))
-    : []
-);
+        const ekSektorUyuyor =
+          Array.isArray(marka.ek_sektor_idler) &&
+          marka.ek_sektor_idler.some(
+            (sektorId: number | string) =>
+              String(sektorId) === String(seciliSektor)
+          );
 
-const filtrelenmisKampanyalar = tumAktifKampanyalar.filter(
-  (kampanya) => {
-    // Kategori seçilmediyse bütün kategorileri kabul et
-    const kategoriUyuyor =
-      !seciliSektor ||
-      String(kampanya.gecerli_sektor_id) === String(seciliSektor) ||
-      (
-        kampanya.fayd_marka &&
-        seciliSektorMarkaIdleri.has(String(kampanya.fayd_marka))
-      );
+        return anaSektorUyuyor || ekSektorUyuyor;
+      })
+      .map((marka) => String(marka.id))
+  );
+}, [seciliSektor, tumMarkalar]);
 
-    // Kampanya türü seçilmediyse bütün türleri kabul et
-    const turUyuyor =
-      !seciliTur ||
-      String(kampanya.kampanya_turu) === String(seciliTur);
+const filtrelenmisKampanyalar = useMemo(
+  () =>
+    tumAktifKampanyalar.filter((kampanya) => {
+      // Kategori seçilmediyse bütün kategorileri kabul et
+      const kategoriUyuyor =
+        !seciliSektor ||
+        String(kampanya.gecerli_sektor_id) === String(seciliSektor) ||
+        Boolean(
+          kampanya.fayd_marka &&
+            seciliSektorMarkaIdleri.has(String(kampanya.fayd_marka))
+        );
 
-    return kategoriUyuyor && turUyuyor;
-  }
+      // Kampanya türü seçilmediyse bütün türleri kabul et
+      const turUyuyor =
+        !seciliTur ||
+        String(kampanya.kampanya_turu) === String(seciliTur);
+
+      return kategoriUyuyor && turUyuyor;
+    }),
+  [
+    seciliSektor,
+    seciliTur,
+    seciliSektorMarkaIdleri,
+    tumAktifKampanyalar,
+  ]
 );
 
 const filtreAktif = Boolean(seciliSektor || seciliTur);
@@ -309,7 +320,7 @@ const filtreAktif = Boolean(seciliSektor || seciliTur);
           onSektorChange={setSeciliSektor}
           onTurChange={setSeciliTur}
         />
-        
+
 
         {/* Son Şans Kampanyaları */}
         {!filtreAktif && sonSansKampanyalar.length > 0 && (
@@ -389,8 +400,8 @@ const filtreAktif = Boolean(seciliSektor || seciliTur);
                     <button
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
-                      className="px-4 py-2 text-sm font-medium rounded-xl border border-slate-200 
-                                bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 
+                      className="px-4 py-2 text-sm font-medium rounded-xl border border-slate-200
+                                bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40
                                 disabled:cursor-not-allowed transition-colors"
                     >
                       ← Önceki
@@ -424,8 +435,8 @@ const filtreAktif = Boolean(seciliSektor || seciliTur);
                       disabled={
                         currentPage === Math.ceil(filtrelenmisKampanyalar.length / itemsPerPage)
                       }
-                      className="px-4 py-2 text-sm font-medium rounded-xl border border-slate-200 
-                                bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 
+                      className="px-4 py-2 text-sm font-medium rounded-xl border border-slate-200
+                                bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40
                                 disabled:cursor-not-allowed transition-colors"
                     >
                       Sonraki →
@@ -462,7 +473,7 @@ const filtreAktif = Boolean(seciliSektor || seciliTur);
             </div>
           </section>
         )}
-        
+
         {/* YENİ KEŞFEDİLEN FIRSATLAR */}
         {!filtreAktif && (
         <section className="mb-14">
@@ -506,14 +517,14 @@ const filtreAktif = Boolean(seciliSektor || seciliTur);
             ))}
           </div>
         </div>
-      
+
       {/* ORTA REKLAM ALANI — YATAY */}
       {(reklamUst && reklamUst.length > 0) && (
         <div className="mt-12 md:mt-16">
-          <ReklamAlani 
-            reklamlar={reklamUst} 
-            maxCount={2} 
-            variant="banner" 
+          <ReklamAlani
+            reklamlar={reklamUst}
+            maxCount={2}
+            variant="banner"
           />
         </div>
       )}
@@ -537,17 +548,20 @@ const filtreAktif = Boolean(seciliSektor || seciliTur);
               <Link
                 key={s.id}
                 href={`/sektor/${s.slug}`}
-                className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden 
+                className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden
                           hover:border-blue-300 hover:shadow-lg transition-all duration-300 no-underline"
               >
                {/* Görsel Alanı */}
                 <div className="h-28 md:h-36 relative overflow-hidden">
                   {s.gorsel_url ? (
-                    <div
-                      className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                      style={{
-                        backgroundImage: `url('${optimizeUnsplash(s.gorsel_url)}')`,
-                      }}
+                    <img
+                      src={optimizeUnsplash(s.gorsel_url)}
+                      alt={`${s.sektor_adi} indirim kodları ve kampanyaları`}
+                      width={600}
+                      height={360}
+                      loading="lazy"
+                      decoding="async"
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
@@ -577,15 +591,15 @@ const filtreAktif = Boolean(seciliSektor || seciliTur);
           </div>
         </section>
 
-      
-   
+
+
       {/* ALT REKLAM ALANI — KARE */}
       {(reklamAlt && reklamAlt.length > 0) && (
         <div className="mt-12 md:mt-16 mb-4">
-          <ReklamAlani 
-            reklamlar={reklamAlt} 
-            maxCount={2} 
-            variant="square" 
+          <ReklamAlani
+            reklamlar={reklamAlt}
+            maxCount={2}
+            variant="square"
           />
         </div>
 )}
@@ -634,13 +648,13 @@ const filtreAktif = Boolean(seciliSektor || seciliTur);
                       setAboneEmail(e.target.value);
                       if (aboneDurum === "hata") setAboneDurum("bos");
                     }}
-                    className="flex-1 px-5 py-3.5 rounded-xl bg-white text-slate-900 text-sm font-medium 
+                    className="flex-1 px-5 py-3.5 rounded-xl bg-white text-slate-900 text-sm font-medium
                               outline-none focus:ring-4 focus:ring-blue-500/30 placeholder:text-slate-400"
                   />
                   <button
                     type="submit"
                     disabled={aboneDurum === "gonderiliyor"}
-                    className="px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold 
+                    className="px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold
                               rounded-xl transition-colors disabled:opacity-60 whitespace-nowrap"
                   >
                     {aboneDurum === "gonderiliyor" ? "Gönderiliyor..." : "Katıl 🚀"}
@@ -649,7 +663,7 @@ const filtreAktif = Boolean(seciliSektor || seciliTur);
               )}
 
               {aboneDurum === "hata" && (
-                <p className="mt-4 text-sm text-red-300 bg-red-500/10 border border-red-500/20 
+                <p className="mt-4 text-sm text-red-300 bg-red-500/10 border border-red-500/20
                               rounded-xl px-4 py-2.5 inline-block">
                   {aboneHataMesaji}
                 </p>
