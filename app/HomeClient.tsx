@@ -4,7 +4,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
 import CampaignCard from "@/components/CampaignCard";
 import ReklamAlani from "@/components/ReklamAlani";
 import HeroSection from "@/components/home/HeroSection";
@@ -215,22 +214,34 @@ const filtreAktif = Boolean(seciliSektor || seciliTur);
 
     setAboneDurum('gonderiliyor');
 
-    const { error } = await supabase.from('abone').insert([{ email: aboneEmail }]);
+    try {
+      const response = await fetch('/api/abone', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: aboneEmail }),
+      });
 
-    if (error) {
-      if (error.code === '23505') {
-        // unique constraint - zaten kayıtlı
+      const sonuc = await response.json().catch(() => null);
+
+      if (!response.ok) {
         setAboneDurum('hata');
-        setAboneHataMesaji('Bu e-posta zaten kayıtlı — teşekkürler, zaten kulübümüzdesin!');
-      } else {
-        setAboneDurum('hata');
-        setAboneHataMesaji('Bir şeyler ters gitti, birazdan tekrar dener misin?');
+        setAboneHataMesaji(
+          sonuc?.message ||
+            'Bir şeyler ters gitti, birazdan tekrar dener misin?'
+        );
+        return;
       }
-      return;
-    }
 
-    setAboneDurum('basarili');
-    setAboneEmail('');
+      setAboneDurum('basarili');
+      setAboneEmail('');
+    } catch {
+      setAboneDurum('hata');
+      setAboneHataMesaji(
+        'Bağlantı kurulamadı, birazdan tekrar dener misin?'
+      );
+    }
   };
 
   return (
