@@ -27,14 +27,13 @@ export async function generateMetadata({
           notFound();
         }
 
-        const kapsamKosulu = marka.sektor_id
-          ? `fayd_marka.eq.${marka.id},gecerli_sektor_id.eq.${marka.sektor_id}`
-          : `fayd_marka.eq.${marka.id}`;
-
         const { count, error: countError } = await supabase
           .from("kampanya")
           .select("id", { count: "exact", head: true })
-          .or(kapsamKosulu)
+          // Marka sayfasında yalnızca doğrudan bu markaya bağlı kampanyaları say.
+          // Sektör geneli kampanyalar burada sayılırsa aynı kampanya, sektördeki
+          // bütün markaların özel fırsatıymış gibi görünür.
+          .eq("fayd_marka", marka.id)
           .or(`bitis_date.gt.${now},bitis_date.is.null`);
 
         // Sorgu hatası olursa yanlışlıkla sayfayı noindex yapmıyoruz.
@@ -135,11 +134,6 @@ export default async function MarkaDetay({ params }: { params: Promise<{ slug: s
 
   const now = new Date().toISOString();
 
-  // Sektör bilgisi olmayan markalarda geçersiz "eq.null" sorgusunu önler.
-  const kapsamKosulu = marka.sektor_id
-    ? `fayd_marka.eq.${marka.id},gecerli_sektor_id.eq.${marka.sektor_id}`
-    : `fayd_marka.eq.${marka.id}`;
-
   // 2. KAMPANYALARI ÇEK
   const { data: kampanyalar } = await supabase
     .from('kampanya')
@@ -148,7 +142,10 @@ export default async function MarkaDetay({ params }: { params: Promise<{ slug: s
       yapan_marka_bilgisi:yapan_marka ( marka_adi, logo_url ),
       tur_bilgisi:kampanya_turu ( tur_adi )
     `)
-    .or(kapsamKosulu)
+    // Yalnızca doğrudan bu markada geçerli kampanyaları getir.
+    // gecerli_sektor_id eşleşmesini buraya eklemek, sektör kampanyalarını
+    // her marka sayfasında marka özel teklifi gibi gösteriyordu.
+    .eq('fayd_marka', marka.id)
     .or(`bitis_date.gt.${now},bitis_date.is.null`)
     .order('id', { ascending: false });
 
