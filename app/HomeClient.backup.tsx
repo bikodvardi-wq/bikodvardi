@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+/* eslint-disable @next/next/no-img-element */
+
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { supabase } from '@/lib/supabase';
 import CampaignCard from "@/components/CampaignCard";
 import ReklamAlani from "@/components/ReklamAlani";
+import HeroSection from "@/components/home/HeroSection";
 
 interface HomeClientProps {
   sektorler: any[];
@@ -20,6 +21,7 @@ interface HomeClientProps {
   reklamAlt: any[] | null;   // ← burayı değiştirdik
   reklamUst: any[] | null;   // ← bunu ekle
 }
+
 export default function HomeClient({
   sektorler,
   kampanyaTurleri,
@@ -39,31 +41,77 @@ export default function HomeClient({
   const [seciliSektor, setSeciliSektor] = useState<string>("");
   const [seciliTur, setSeciliTur] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const itemsPerPage = 10;
 
   // Sabit Popüler Aramalar
-  const populerAramalar = ["Trendyol", "Spor", "Kozmetik", "Ayakkabı", "Teknoloji"];
+  const populerAramalar = ["Trendyol", "Spor", "Kozmetik", "Ayakkabı"];
 
   const aramaYap = (terim: string) => {
-    setAramaTerimi(terim);
-    if (terim.length > 1) {
-      const kucukTerim = terim.toLocaleLowerCase('tr-TR');
+  setAramaTerimi(terim);
 
-      const markaSonuclari = tumMarkalar
-        .filter(m => m.marka_adi.toLocaleLowerCase('tr-TR').includes(kucukTerim))
-        .map(m => ({ ...m, tip: 'marka' }))
-        .slice(0, 5);
+  const temizTerim = terim.trim();
 
-      const sektorSonuclari = sektorler
-        .filter(s => s.sektor_adi.toLocaleLowerCase('tr-TR').includes(kucukTerim))
-        .map(s => ({ ...s, tip: 'sektor' }))
-        .slice(0, 3);
+  if (temizTerim.length < 2) {
+    setAramaSonuclari([]);
+    return;
+  }
 
-      setAramaSonuclari([...sektorSonuclari, ...markaSonuclari]);
-    } else {
-      setAramaSonuclari([]);
-    }
-  };
+  const kucukTerim = temizTerim.toLocaleLowerCase("tr-TR");
+
+  // Kampanya sonuçları
+  const kampanyaSonuclari = tumAktifKampanyalar
+    .filter((kampanya) => {
+      const baslik = String(
+        kampanya.baslik || ""
+      ).toLocaleLowerCase("tr-TR");
+
+      const markaAdi = String(
+        kampanya.yapan_marka_bilgisi?.marka_adi || ""
+      ).toLocaleLowerCase("tr-TR");
+
+      return (
+        baslik.includes(kucukTerim) ||
+        markaAdi.includes(kucukTerim)
+      );
+    })
+    .slice(0, 5)
+    .map((kampanya) => ({
+      ...kampanya,
+      tip: "kampanya",
+    }));
+
+  // Marka sonuçları
+  const markaSonuclari = tumMarkalar
+    .filter((marka) =>
+      String(marka.marka_adi || "")
+        .toLocaleLowerCase("tr-TR")
+        .includes(kucukTerim)
+    )
+    .slice(0, 3)
+    .map((marka) => ({
+      ...marka,
+      tip: "marka",
+    }));
+
+  // Kategori sonuçları
+  const sektorSonuclari = sektorler
+    .filter((sektor) =>
+      String(sektor.sektor_adi || "")
+        .toLocaleLowerCase("tr-TR")
+        .includes(kucukTerim)
+    )
+    .slice(0, 2)
+    .map((sektor) => ({
+      ...sektor,
+      tip: "sektor",
+    }));
+
+  setAramaSonuclari([
+    ...kampanyaSonuclari,
+    ...markaSonuclari,
+    ...sektorSonuclari,
+  ]);
+};
 
   const hizliArama = (terim: string) => {
     aramaYap(terim);
@@ -80,22 +128,57 @@ export default function HomeClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filtrelenmisKampanyalar = tumAktifKampanyalar
-    .filter(k => {
-      let uyuyor = true;
-      if (seciliSektor) {
-        uyuyor = uyuyor && (
-          String(k.gecerli_sektor_id) === seciliSektor ||
-          String(k.yapan_marka_bilgisi?.sektor_id) === seciliSektor
-        );
-      }
-      if (seciliTur) {
-        uyuyor = uyuyor && String(k.kampanya_turu) === seciliTur;
-      }
-      return uyuyor;
-    });
+  // Seçilen kategoriye bağlı markaları bul
+const seciliSektorMarkaIdleri = useMemo(() => {
+  if (!seciliSektor) return new Set<string>();
 
-  const filtreAktif = seciliSektor || seciliTur;
+  return new Set(
+    tumMarkalar
+      .filter((marka) => {
+        const anaSektorUyuyor =
+          String(marka.sektor_id) === String(seciliSektor);
+
+        const ekSektorUyuyor =
+          Array.isArray(marka.ek_sektor_idler) &&
+          marka.ek_sektor_idler.some(
+            (sektorId: number | string) =>
+              String(sektorId) === String(seciliSektor)
+          );
+
+        return anaSektorUyuyor || ekSektorUyuyor;
+      })
+      .map((marka) => String(marka.id))
+  );
+}, [seciliSektor, tumMarkalar]);
+
+const filtrelenmisKampanyalar = useMemo(
+  () =>
+    tumAktifKampanyalar.filter((kampanya) => {
+      // Kategori seçilmediyse bütün kategorileri kabul et
+      const kategoriUyuyor =
+        !seciliSektor ||
+        String(kampanya.gecerli_sektor_id) === String(seciliSektor) ||
+        Boolean(
+          kampanya.fayd_marka &&
+            seciliSektorMarkaIdleri.has(String(kampanya.fayd_marka))
+        );
+
+      // Kampanya türü seçilmediyse bütün türleri kabul et
+      const turUyuyor =
+        !seciliTur ||
+        String(kampanya.kampanya_turu) === String(seciliTur);
+
+      return kategoriUyuyor && turUyuyor;
+    }),
+  [
+    seciliSektor,
+    seciliTur,
+    seciliSektorMarkaIdleri,
+    tumAktifKampanyalar,
+  ]
+);
+
+const filtreAktif = Boolean(seciliSektor || seciliTur);
 
   const filtreTemizle = () => {
     setSeciliSektor("");
@@ -103,17 +186,18 @@ export default function HomeClient({
   };
 
   const optimizeUnsplash = (url: string) => {
-  if (!url || !url.includes('images.unsplash.com')) return url;
-  try {
-    const u = new URL(url);
-    u.searchParams.set('w', '600');
-    u.searchParams.set('q', '75');
-    u.searchParams.set('auto', 'format');
-    return u.toString();
-  } catch {
-    return url;
-  }
-};
+    if (!url || !url.includes("images.unsplash.com")) return url;
+
+    try {
+      const u = new URL(url);
+      u.searchParams.set("w", "600");
+      u.searchParams.set("q", "75");
+      u.searchParams.set("auto", "format");
+      return u.toString();
+    } catch {
+      return url;
+    }
+  };
 
   // --- Bülten Aboneliği ---
   const [aboneEmail, setAboneEmail] = useState("");
@@ -132,22 +216,34 @@ export default function HomeClient({
 
     setAboneDurum('gonderiliyor');
 
-    const { error } = await supabase.from('abone').insert([{ email: aboneEmail }]);
+    try {
+      const response = await fetch('/api/abone', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: aboneEmail }),
+      });
 
-    if (error) {
-      if (error.code === '23505') {
-        // unique constraint - zaten kayıtlı
+      const sonuc = await response.json().catch(() => null);
+
+      if (!response.ok) {
         setAboneDurum('hata');
-        setAboneHataMesaji('Bu e-posta zaten kayıtlı — teşekkürler, zaten kulübümüzdesin!');
-      } else {
-        setAboneDurum('hata');
-        setAboneHataMesaji('Bir şeyler ters gitti, birazdan tekrar dener misin?');
+        setAboneHataMesaji(
+          sonuc?.message ||
+            'Bir şeyler ters gitti, birazdan tekrar dener misin?'
+        );
+        return;
       }
-      return;
-    }
 
-    setAboneDurum('basarili');
-    setAboneEmail('');
+      setAboneDurum('basarili');
+      setAboneEmail('');
+    } catch {
+      setAboneDurum('hata');
+      setAboneHataMesaji(
+        'Bağlantı kurulamadı, birazdan tekrar dener misin?'
+      );
+    }
   };
 
   return (
@@ -158,168 +254,86 @@ export default function HomeClient({
             bi<span className="text-blue-600">kod</span>vardı
           </div>
         </Link>
-        <div className="flex gap-3">
-          <a href="https://wa.me/channel/LINKIN" target="_blank" className="hidden md:flex items-center gap-2 text-sm font-bold text-green-600 bg-green-50 px-4 py-2 rounded-full hover:bg-green-100 transition no-underline border border-green-100">WhatsApp</a>
-         <a
+        <div className="flex items-center gap-2 md:gap-3">
+          {/* Mobil uygulama */}
+          <Link
+            href="/app"
+            aria-label="BiKodVardı mobil uygulamasını indir"
+            className="flex h-10 items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 text-blue-600 no-underline transition hover:border-blue-200 hover:bg-blue-100 md:px-4"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="6" y="2" width="12" height="20" rx="2" />
+              <path d="M10 18h4" />
+            </svg>
+
+            <span className="hidden text-xs font-bold sm:inline">
+              Uygulamayı İndir
+            </span>
+          </Link>
+
+          {/* WhatsApp */}
+          <a
+            href="https://whatsapp.com/channel/0029VbCMRE8EFeXm1h0Lw92F"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="BiKodVardı WhatsApp kanalını takip et"
+            className="hidden items-center gap-2 rounded-full border border-green-100 bg-green-50 px-4 py-2 text-sm font-bold text-green-600 no-underline transition hover:bg-green-100 md:flex"
+          >
+            WhatsApp
+          </a>
+
+          {/* Telegram */}
+          <a
             href="https://t.me/bikodvardi"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Telegram'da biKodVardı"
-            className="w-10 h-10 flex items-center justify-center bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition border border-blue-100 no-underline"
+            aria-label="Telegram'da BiKodVardı"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-blue-600 no-underline transition hover:bg-blue-100"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
             </svg>
           </a>
         </div>
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 md:px-8">
-        <header className="pt-8 md:pt-14 pb-10 md:pb-14">
-  {/* Stats */}
-  <div className="flex flex-wrap justify-center gap-2.5 mb-8">
-    <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-3.5 py-1.5 rounded-full shadow-sm">
-      <span className="text-orange-500 text-xs">📦</span>
-      <span className="text-[11px] font-bold text-slate-600">
-        {stats.toplam.toLocaleString("tr-TR")} Toplam Kod
-      </span>
-    </div>
-    <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-3.5 py-1.5 rounded-full shadow-sm">
-      <span className="relative flex h-2 w-2">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-      </span>
-      <span className="text-[11px] font-bold text-slate-600">
-        {stats.aktif.toLocaleString("tr-TR")} Aktif Kampanya
-      </span>
-    </div>
-    <div className="hidden sm:inline-flex items-center gap-2 bg-white border border-slate-200 px-3.5 py-1.5 rounded-full shadow-sm">
-      <span className="text-blue-500 text-xs font-black">●</span>
-      <span className="text-[11px] font-bold text-slate-600">
-        {stats.marka}+ Marka
-      </span>
-    </div>
-  </div>
+        <HeroSection
+          stats={stats}
+          aramaTerimi={aramaTerimi}
+          aramaSonuclari={aramaSonuclari}
+          populerAramalar={populerAramalar}
+          sektorler={sektorler}
+          kampanyaTurleri={kampanyaTurleri}
+          seciliSektor={seciliSektor}
+          seciliTur={seciliTur}
+          onArama={aramaYap}
+          onHizliArama={hizliArama}
+          onSektorChange={setSeciliSektor}
+          onTurChange={setSeciliTur}
+        />
 
-  {/* Başlık */}
-  <div className="text-center max-w-3xl mx-auto mb-8">
-    <h1
-      className="text-4xl sm:text-5xl md:text-6xl font-[900] tracking-tight text-slate-900 leading-[1.15]"
-      style={{ fontFamily: "Outfit" }}
-    >
-      İndirim kodu ara,
-      <br />
-      <span className="text-blue-600">bi'kod bul.</span>
-    </h1>
-  </div>
-
-  {/* Arama Kutusu */}
-  <div className="w-full max-w-2xl mx-auto relative">
-    <div className="relative">
-      <input
-        type="text"
-        placeholder="Marka, kategori veya fırsat ara..."
-        value={aramaTerimi}
-        onChange={(e) => aramaYap(e.target.value)}
-        className="w-full bg-white border border-slate-200 text-slate-900 text-base md:text-lg 
-                   py-4 md:py-5 pl-5 pr-12 rounded-2xl shadow-lg shadow-slate-200/50
-                   outline-none focus:ring-4 focus:ring-blue-500/15 focus:border-blue-400
-                   transition-all font-medium placeholder:text-slate-400"
-      />
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-      </div>
-    </div>
-
-    {/* Arama Sonuçları */}
-    {aramaSonuclari.length > 0 && (
-      <div className="absolute top-full mt-2 left-0 right-0 bg-white border border-slate-200 rounded-2xl shadow-2xl p-2 z-50 overflow-hidden">
-        {aramaSonuclari.map((item: any, index: number) => (
-          <Link
-            key={index}
-            href={item.tip === "sektor" ? `/sektor/${item.slug}` : `/marka/${item.slug}`}
-            className="flex items-center justify-between p-3.5 hover:bg-blue-50 rounded-xl transition no-underline text-slate-900 group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center">
-                {item.tip === "sektor" ? (
-                  <span className="text-sm">📁</span>
-                ) : item.logo_url ? (
-                  <Image src={item.logo_url} width={16} height={16} className="object-contain" alt="" />
-                ) : (
-                  <span className="text-[11px] font-black">{item.marka_adi?.charAt(0)}</span>
-                )}
-              </div>
-              <span className="font-semibold text-sm group-hover:text-blue-600 transition-colors">
-                {item.tip === "sektor" ? item.sektor_adi : item.marka_adi}
-                {item.tip === "marka" && " İndirimleri"}
-              </span>
-            </div>
-            <span
-              className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase ${
-                item.tip === "sektor" ? "bg-orange-100 text-orange-600" : "bg-blue-100 text-blue-600"
-              }`}
-            >
-              {item.tip === "sektor" ? "Kategori" : "Marka"}
-            </span>
-          </Link>
-        ))}
-      </div>
-    )}
-  </div>
-
-  {/* Popüler Aramalar */}
-  <div className="flex flex-wrap justify-center items-center gap-2 mt-4">
-    <span className="text-[11px] text-slate-400 font-medium">Popüler:</span>
-    {populerAramalar.map((p) => (
-      <button
-        key={p}
-        onClick={() => hizliArama(p)}
-        className="text-[11px] bg-white border border-slate-200 hover:border-blue-300 hover:text-blue-600 
-                   text-slate-500 px-3 py-1 rounded-full transition-all font-medium"
-      >
-        {p}
-      </button>
-    ))}
-  </div>
-
-  {/* Filtreler */}
-  <div className="flex flex-wrap justify-center gap-3 mt-6">
-    <select
-        value={seciliSektor}
-        onChange={(e) => setSeciliSektor(e.target.value)}
-        aria-label="Sektör seçin"
-        className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 
-                  outline-none focus:ring-2 focus:ring-blue-500/20 min-w-[160px]"
-      >
-        <option value="">Tüm Sektörler</option>
-        {sektorler.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.sektor_adi} ({s.firsatSayisi || 0})
-          </option>
-        ))}
-      </select>
-
-    <select
-      value={seciliTur}
-      onChange={(e) => setSeciliTur(e.target.value)}
-      aria-label="Kampanya türü seçin"
-      className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 
-                 outline-none focus:ring-2 focus:ring-blue-500/20 min-w-[160px]"
-    >
-      <option value="">Tüm Kampanya Türleri</option>
-      {kampanyaTurleri.map((t) => (
-        <option key={t.id} value={t.id}>
-          {t.tur_adi || `Tür ${t.id}`}
-        </option>
-      ))}
-    </select>
-  </div>
-</header>
-        
 
         {/* Son Şans Kampanyaları */}
         {!filtreAktif && sonSansKampanyalar.length > 0 && (
@@ -334,7 +348,7 @@ export default function HomeClient({
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-              {sonSansKampanyalar.map((k) => (
+              {sonSansKampanyalar.slice(0, 4).map((k) => (
                 <CampaignCard
                   key={k.id}
                   kampanya={k}
@@ -399,8 +413,8 @@ export default function HomeClient({
                     <button
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
-                      className="px-4 py-2 text-sm font-medium rounded-xl border border-slate-200 
-                                bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 
+                      className="px-4 py-2 text-sm font-medium rounded-xl border border-slate-200
+                                bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40
                                 disabled:cursor-not-allowed transition-colors"
                     >
                       ← Önceki
@@ -434,8 +448,8 @@ export default function HomeClient({
                       disabled={
                         currentPage === Math.ceil(filtrelenmisKampanyalar.length / itemsPerPage)
                       }
-                      className="px-4 py-2 text-sm font-medium rounded-xl border border-slate-200 
-                                bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 
+                      className="px-4 py-2 text-sm font-medium rounded-xl border border-slate-200
+                                bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40
                                 disabled:cursor-not-allowed transition-colors"
                     >
                       Sonraki →
@@ -460,8 +474,8 @@ export default function HomeClient({
               </h3>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-5">
-              {ucretsizKampanyalar.map((k) => (
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
+              {ucretsizKampanyalar.slice(0, 4).map((k) => (
                 <CampaignCard
                   key={k.id}
                   kampanya={k}
@@ -474,6 +488,7 @@ export default function HomeClient({
         )}
 
         {/* YENİ KEŞFEDİLEN FIRSATLAR */}
+        {!filtreAktif && (
         <section className="mb-14">
           <div className="flex items-center justify-between mb-6 px-2">
             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
@@ -483,7 +498,7 @@ export default function HomeClient({
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5">
-            {enYeniKampanyalar.map((k) => (
+            {enYeniKampanyalar.slice(0, 4).map((k) => (
               <CampaignCard
                 key={k.id}
                 kampanya={k}
@@ -492,7 +507,8 @@ export default function HomeClient({
               />
             ))}
           </div>
-        </section>
+          </section>
+        )}
 
         {/* POPÜLER MARKALAR */}
         <div className="max-w-7xl mx-auto mb-16">
@@ -514,14 +530,14 @@ export default function HomeClient({
             ))}
           </div>
         </div>
-      
+
       {/* ORTA REKLAM ALANI — YATAY */}
       {(reklamUst && reklamUst.length > 0) && (
         <div className="mt-12 md:mt-16">
-          <ReklamAlani 
-            reklamlar={reklamUst} 
-            maxCount={2} 
-            variant="banner" 
+          <ReklamAlani
+            reklamlar={reklamUst}
+            maxCount={2}
+            variant="banner"
           />
         </div>
       )}
@@ -545,15 +561,19 @@ export default function HomeClient({
               <Link
                 key={s.id}
                 href={`/sektor/${s.slug}`}
-                className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden 
+                className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden
                           hover:border-blue-300 hover:shadow-lg transition-all duration-300 no-underline"
               >
                {/* Görsel Alanı */}
                 <div className="h-28 md:h-36 relative overflow-hidden">
                   {s.gorsel_url ? (
                     <div
+                      role="img"
+                      aria-label={`${s.sektor_adi} indirim kodları ve kampanyaları`}
                       className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
-                      style={{ backgroundImage: `url('${optimizeUnsplash(s.gorsel_url)}')` }}
+                      style={{
+                        backgroundImage: `url('${optimizeUnsplash(s.gorsel_url)}')`,
+                      }}
                     />
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
@@ -562,7 +582,7 @@ export default function HomeClient({
                       </span>
                     </div>
                   )}
-                  {/* Hafif karartma */}
+
                   <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
                 </div>
 
@@ -582,15 +602,15 @@ export default function HomeClient({
           </div>
         </section>
 
-      
-   
+
+
       {/* ALT REKLAM ALANI — KARE */}
       {(reklamAlt && reklamAlt.length > 0) && (
         <div className="mt-12 md:mt-16 mb-4">
-          <ReklamAlani 
-            reklamlar={reklamAlt} 
-            maxCount={2} 
-            variant="square" 
+          <ReklamAlani
+            reklamlar={reklamAlt}
+            maxCount={2}
+            variant="square"
           />
         </div>
 )}
@@ -639,13 +659,13 @@ export default function HomeClient({
                       setAboneEmail(e.target.value);
                       if (aboneDurum === "hata") setAboneDurum("bos");
                     }}
-                    className="flex-1 px-5 py-3.5 rounded-xl bg-white text-slate-900 text-sm font-medium 
+                    className="flex-1 px-5 py-3.5 rounded-xl bg-white text-slate-900 text-sm font-medium
                               outline-none focus:ring-4 focus:ring-blue-500/30 placeholder:text-slate-400"
                   />
                   <button
                     type="submit"
                     disabled={aboneDurum === "gonderiliyor"}
-                    className="px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold 
+                    className="px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold
                               rounded-xl transition-colors disabled:opacity-60 whitespace-nowrap"
                   >
                     {aboneDurum === "gonderiliyor" ? "Gönderiliyor..." : "Katıl 🚀"}
@@ -654,7 +674,7 @@ export default function HomeClient({
               )}
 
               {aboneDurum === "hata" && (
-                <p className="mt-4 text-sm text-red-300 bg-red-500/10 border border-red-500/20 
+                <p className="mt-4 text-sm text-red-300 bg-red-500/10 border border-red-500/20
                               rounded-xl px-4 py-2.5 inline-block">
                   {aboneHataMesaji}
                 </p>
@@ -678,10 +698,25 @@ export default function HomeClient({
             <div className="space-y-4">
               <h4 className="text-slate-900 font-black uppercase text-xs tracking-widest" style={{ fontFamily: 'Outfit' }}>Keşfet</h4>
               <nav className="flex flex-col gap-2">
-                <Link href="/blog" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">Blog</Link>
-                <Link href="/hakkimizda" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">Hakkımızda</Link>
-                <Link href="/iletisim" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">İletişim</Link>
-                <Link href="/gizlilik-politikasi" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">Gizlilik Politikası</Link>
+                <Link href="/app" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">
+                  Mobil Uygulama
+                </Link>
+
+                <Link href="/blog" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">
+                  Blog
+                </Link>
+
+                <Link href="/hakkimizda" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">
+                  Hakkımızda
+                </Link>
+
+                <Link href="/iletisim" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">
+                  İletişim
+                </Link>
+
+                <Link href="/gizlilik-politikasi" className="text-slate-500 hover:text-blue-600 text-sm font-medium no-underline transition-colors">
+                  Gizlilik Politikası
+                </Link>
               </nav>
             </div>
             <div className="space-y-4 md:text-right">

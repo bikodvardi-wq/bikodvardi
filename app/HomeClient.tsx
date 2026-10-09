@@ -21,6 +21,7 @@ interface HomeClientProps {
   reklamAlt: any[] | null;   // ← burayı değiştirdik
   reklamUst: any[] | null;   // ← bunu ekle
 }
+
 export default function HomeClient({
   sektorler,
   kampanyaTurleri,
@@ -185,17 +186,18 @@ const filtreAktif = Boolean(seciliSektor || seciliTur);
   };
 
   const optimizeUnsplash = (url: string) => {
-  if (!url || !url.includes('images.unsplash.com')) return url;
-  try {
-    const u = new URL(url);
-    u.searchParams.set('w', '600');
-    u.searchParams.set('q', '75');
-    u.searchParams.set('auto', 'format');
-    return u.toString();
-  } catch {
-    return url;
-  }
-};
+    if (!url || !url.includes("images.unsplash.com")) return url;
+
+    try {
+      const u = new URL(url);
+      u.searchParams.set("w", "600");
+      u.searchParams.set("q", "75");
+      u.searchParams.set("auto", "format");
+      return u.toString();
+    } catch {
+      return url;
+    }
+  };
 
   // --- Bülten Aboneliği ---
   const [aboneEmail, setAboneEmail] = useState("");
@@ -565,14 +567,13 @@ const filtreAktif = Boolean(seciliSektor || seciliTur);
                {/* Görsel Alanı */}
                 <div className="h-28 md:h-36 relative overflow-hidden">
                   {s.gorsel_url ? (
-                    <img
-                      src={optimizeUnsplash(s.gorsel_url)}
-                      alt={`${s.sektor_adi} indirim kodları ve kampanyaları`}
-                      width={600}
-                      height={360}
-                      loading="lazy"
-                      decoding="async"
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    <div
+                      role="img"
+                      aria-label={`${s.sektor_adi} indirim kodları ve kampanyaları`}
+                      className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
+                      style={{
+                        backgroundImage: `url('${optimizeUnsplash(s.gorsel_url)}')`,
+                      }}
                     />
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
@@ -582,7 +583,6 @@ const filtreAktif = Boolean(seciliSektor || seciliTur);
                     </div>
                   )}
 
-                  {/* Hafif karartma */}
                   <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
                 </div>
 
