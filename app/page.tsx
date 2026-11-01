@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 import type { Metadata } from 'next';
 import HomeClient from './HomeClient';
 import { getReklamlar } from '@/lib/reklam';
-export const revalidate = 300; // 5 dakikada bir yenilenir
+export const revalidate = 3600; // 1 saatte bir kontrol edilir // 5 dakikada bir yenilenir
 
 // 🚀 SEO: Ana sayfa artık sunucuda render ediliyor, arama motorları
 // içeriği (kampanyalar, markalar, sektörler) doğrudan HTML içinde görüyor.
@@ -19,9 +19,96 @@ export const metadata: Metadata = {
   },
 };
 
-// Kampanyaları/markaları rastgele karıştırmak için (server'da her istekte bir kez çalışır)
-function karistir<T>(array: T[]): T[] {
-  return [...array].sort(() => 0.5 - Math.random());
+/**
+ * Türkiye saatine göre haftalık sabit anahtar üretir.
+ * Böylece sıralama her istekte değil, haftada bir değişir.
+ */
+function haftaAnahtariOlustur(): string {
+  const parcalar = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const degerler = Object.fromEntries(
+    parcalar
+      .filter((parca) => parca.type !== "literal")
+      .map((parca) => [parca.type, parca.value])
+  );
+
+  const tarih = new Date(
+    Date.UTC(
+      Number(degerler.year),
+      Number(degerler.month) - 1,
+      Number(degerler.day)
+    )
+  );
+
+  const haftaninGunu = tarih.getUTCDay() || 7;
+
+  tarih.setUTCDate(tarih.getUTCDate() + 4 - haftaninGunu);
+
+  const haftaYili = tarih.getUTCFullYear();
+  const yilBaslangici = new Date(Date.UTC(haftaYili, 0, 1));
+
+  const haftaNumarasi = Math.ceil(
+    ((tarih.getTime() - yilBaslangici.getTime()) / 86_400_000 + 1) / 7
+  );
+
+  return `${haftaYili}-W${String(haftaNumarasi).padStart(2, "0")}`;
+}
+
+function sabitHashOlustur(deger: string): number {
+  let hash = 2_166_136_261;
+
+  for (let i = 0; i < deger.length; i += 1) {
+    hash ^= deger.charCodeAt(i);
+    hash = Math.imul(hash, 16_777_619);
+  }
+
+  return hash >>> 0;
+}
+
+function ogeAnahtariOlustur<T>(oge: T, index: number): string {
+  if (typeof oge === "object" && oge !== null) {
+    const kayit = oge as {
+      id?: string | number | null;
+      slug?: string | null;
+    };
+
+    if (kayit.id !== undefined && kayit.id !== null) {
+      return String(kayit.id);
+    }
+
+    if (kayit.slug) {
+      return kayit.slug;
+    }
+  }
+
+  return String(index);
+}
+
+/**
+ * Listeyi aynı hafta boyunca değişmeyecek şekilde sıralar.
+ */
+function haftalikKaristir<T>(array: T[], grup: string): T[] {
+  const haftaAnahtari = haftaAnahtariOlustur();
+
+  return array
+    .map((oge, index) => ({
+      oge,
+      index,
+      siralama: sabitHashOlustur(
+        `${haftaAnahtari}:${grup}:${ogeAnahtariOlustur(oge, index)}`
+      ),
+    }))
+    .sort(
+      (a, b) =>
+        a.siralama - b.siralama ||
+        a.index - b.index
+    )
+    .map(({ oge }) => oge);
 }
 
 export default async function Home() {
@@ -99,20 +186,30 @@ export default async function Home() {
   const yeniKData = yeniKRes.data || [];
   const ucretsizData = ucretsizRes.data || [];
 
-  const ucretsizKampanyalar = karistir(ucretsizData).slice(0, 6);
-  const enYeniKampanyalar = karistir(yeniKData).slice(0, 6);
+const ucretsizKampanyalar = haftalikKaristir(
+  ucretsizData,
+  "ucretsiz-kampanyalar"
+).slice(0, 6);
+
+const enYeniKampanyalar = haftalikKaristir(
+  yeniKData,
+  "en-yeni-kampanyalar"
+).slice(0, 6);
 
   // “Son Şans” (bitiş tarihi 3 gün içinde olanlar)
 const ucGunSonra = new Date();
 ucGunSonra.setDate(ucGunSonra.getDate() + 3);
 
-const sonSansKampanyalar = karistir(
+const simdi = Date.now();
+
+const sonSansKampanyalar = haftalikKaristir(
   tumAktifData.filter(
     (k: any) =>
       k.bitis_date &&
       new Date(k.bitis_date).getTime() <= ucGunSonra.getTime() &&
-      new Date(k.bitis_date).getTime() > new Date().getTime()
-  )
+      new Date(k.bitis_date).getTime() > simdi
+  ),
+  "son-sans-kampanyalari"
 ).slice(0, 4);
 
   // Sektör ve Marka Sayaçları
