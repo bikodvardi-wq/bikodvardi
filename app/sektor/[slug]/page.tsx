@@ -8,7 +8,7 @@ import ReklamAlani from "@/components/ReklamAlani";
 import { getReklamlar } from "@/lib/reklam";
 import { supabase } from "@/lib/supabase";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // 24 saatte bir yeniden doğrulanır
 
 const SITE_URL = "https://bikodvardi.com";
 const OG_IMAGE = `${SITE_URL}/og-image.png`;

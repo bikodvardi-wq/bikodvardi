@@ -5,8 +5,8 @@ import { notFound } from "next/navigation";
 import KampanyaIcerik from "./KampanyaIcerik";
 import { getReklamlar } from "@/lib/reklam";
 
-export const revalidate = 300;
-
+export const revalidate = 86400;
+ // 24 saatte bir yeniden doğrulanır
 const SITE_URL = "https://bikodvardi.com";
 const OG_IMAGE = `${SITE_URL}/og-image.png`;
 

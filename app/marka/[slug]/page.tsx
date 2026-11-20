@@ -18,7 +18,7 @@ import { supabase } from "@/lib/supabase";
 
 
 
-export const revalidate = 3600;
+export const revalidate = 86400; // 24 saatte bir yeniden doğrulanır
 
 
 

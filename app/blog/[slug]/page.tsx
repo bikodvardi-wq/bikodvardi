@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 
 import { supabase } from "@/lib/supabase";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // 24 saatte bir yeniden doğrulanır
 
 const SITE_URL = "https://bikodvardi.com";
 const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.png`;
@@ -81,16 +81,15 @@ const blogYazisiniGetir = cache(async (slug: string) => {
   const { data, error } = await supabase
     .from("blog_yazilari")
     .select(`
-      id,
-      baslik,
-      slug,
-      ozet,
-      icerik,
-      kapak_gorseli,
-      yayin_durumu,
-      okunma_sayisi,
-      created_at
-    `)
+  id,
+  baslik,
+  slug,
+  ozet,
+  icerik,
+  kapak_gorseli,
+  yayin_durumu,
+  created_at
+`)
     .eq("slug", slug)
     .eq("yayin_durumu", true)
     .maybeSingle();

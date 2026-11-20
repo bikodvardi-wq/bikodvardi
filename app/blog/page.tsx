@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-export const revalidate = 3600;
+export const revalidate = 86400; // 24 saatte bir yeniden doğrulanır
 
 const SITE_URL = "https://bikodvardi.com";
 const SAYFA_BASINA_YAZI = 12;
